@@ -1,7 +1,5 @@
 ---
-title: |
-  | Resultater fra hønsefugltakseringene
-  | `r paste(d$Navn[1])` `r paste(d$Year[1])`
+title: Resultater fra hønsefugltakseringene
 author: "NINA / HiNN"
 date: 23\. august 2021
 header-includes:
@@ -29,7 +27,7 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 ### 1. DEFINE WORK SPACE:
-      setwd("~/12169400 - Hønsefuglportalen 2 (EBN)/ANALYSER OG TAKSERING/TAKSERINGSANALYSER/Analyser 2021/Statskog/Helgeland 1")
+      #setwd("~/12169400 - Hønsefuglportalen 2 (EBN)/ANALYSER OG TAKSERING/TAKSERINGSANALYSER/Analyser 2021/Statskog/Helgeland 1")
       library(Distance)
       library(knitr)
       library(HFP)
