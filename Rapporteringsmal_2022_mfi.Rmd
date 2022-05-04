@@ -78,7 +78,7 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       d_1 <- d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
       d <- d_1 #%>% filter(Rapporteringsniva!="Pasvik")
       
-### 4. DEFINE SPECEIS - SINGLE SPECIES ANALYSIS;
+### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
 ###     
       Art1 <- "Lirype"
       Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
@@ -189,6 +189,8 @@ otherSpecies = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn != "Liry
 
 
 ```
+
+Merk at estimater kun er gjort for `r paste(Art2)` (`r as.matrix(table(d$Artnavn))[1]` observasjoner, som over). Øvrige arter ble ikke observert.
 
 Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observasjoner, som over). `r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""), 
              ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""), 
