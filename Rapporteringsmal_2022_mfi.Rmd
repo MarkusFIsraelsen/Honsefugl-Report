@@ -1,0 +1,197 @@
+---
+title: |
+  | Resultater fra hønsefugltakseringene
+  | `r paste(d$Navn[1])` `r paste(d$Year[1])`
+author: "NINA / HiNN"
+date: 23\. august 2021
+header-includes:
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- \makeatletter
+- \let\ps@plain\ps@fancy
+- \makeatother
+- \fancyhf{}
+- \fancyhead[CO,CE]{\includegraphics{logosmall.png}}
+- \fancyfoot[CO,CE]{Hønsefuglportalen 2021}
+- \fancyfoot[LE,RO]{\thepage}
+- \setlength\headheight{41.1pt}
+output: pdf_document
+---
+
+### Kommentarer      
+Vi vil påpeke at det er rettighetshaverne som er ansvarlige for at linjene er lagt ut slik at de er representative for områdene de er ment å dekke. Dersom linjene ligger i habitater hvor det generelt er høyere tettheter enn i resten av området vil tettheten overestimeres. I tilfeller hvor linjefordelingen er dårlig balansert mellom områder (mange linjer i noen små områder, få linjer i store områder) vil dette kunne påvirke resultatene. I disse tilfellene bør man betrakte estimatene som en indeks og ikke som et presist mål på tettheten i forvaltningsområdet.   
+
+På grunn av korte tidsfrister er det også tatt utgangspunkt i at lokalkontakter og regionansvarlige har stått for kvalitetssikringen av dataene. 
+
+### Metoder
+For å forenkle og standardisere analysene har vi valgt å analysere alle data med en såkalt «Half Normal» (HN) oppdagbarhetsfunksjon. Dette gjør at det blir enklere å sammenlikne data mellom områder med lite og mere data, og denne funksjonen er også langt mer stabil enn andre mer parameterrike funksjoner (som f.eks Hazard) og funksjoner med ulike serie-ekspansjoner. «Half Normal» er den enkleste oppdagbarhetsfunksjonen, og man estimerer kun en parameter (en såkalt «scale»-parameter) som er et uttrykk for hvor vid fordelingen er. Selv i tilfeller med relativt mye data vil ofte de andre funksjonene være noe ustabile i den grad at estimatene endrer seg raskt selv med små endringer i datasettet. Vi har likevel vurdert andre funksjoner, og vil rapportere resultater også fra disse dersom de gir helt andre resultater. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+### 1. DEFINE WORK SPACE:
+      setwd("~/12169400 - Hønsefuglportalen 2 (EBN)/ANALYSER OG TAKSERING/TAKSERINGSANALYSER/Analyser 2021/Statskog/Helgeland 1")
+      library(Distance)
+      library(knitr)
+      library(HFP)
+      library(pander)
+      library(dplyr)
+      library(RODBC)
+
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+### 2. LOAD AND FORMAT DATA SET
+
+      conn <- odbcDriverConnect("driver={SQL Server}; server=ninsql07; database=Honsefugl; trusted_connection=true")
+      Kommune <- sqlFetch(conn, "FYLKEKOMMUNE")
+      Taks <- sqlQuery(conn, paste("SELECT TakseringID, LengdeTaksert, FK_LinjeID, Temperatur, SettSMagnager, Aar, FK_HundeforholdID FROM Taksering"))
+      TaksLin <- sqlQuery(conn, paste("SELECT LinjeID, FK_OmradeID FROM Takseringslinje"))
+      TaksOmr <- sqlQuery(conn, paste("SELECT OmradeID, FK_Fylkekomnr, OmradeNavn, FK_RapporteringsnivaaID FROM Takseringsomrade"))
+      Region <- sqlQuery(conn, paste("SELECT ID, Navn, FK_RegionID FROM Rapporteringsnivaa"))
+      Obs <- sqlQuery(conn, paste("SELECT ObservasjonId, Aar, LinjeAvstand, FK_TakseringID, AntallHann, AntallHunn, AntallKylling, AntallUkjent, FK_ArtId FROM Observasjon"))
+      close(conn)
+      
+      #Merge data
+      df <- merge(Taks, TaksLin, by.x = "FK_LinjeID", by.y = "LinjeID", all.x = T, all.y = F)
+      df <- merge(df, TaksOmr, by.x = "FK_OmradeID", by.y = "OmradeID", all.x = T, all.y = F)
+      df <- merge(df, Kommune, by.x = "FK_Fylkekomnr", by.y = "Fylkekomnr", all.x = T, all.y = F)
+      df <- merge(df, Region, by.x = "FK_RapporteringsnivaaID", by.y = "ID", all.x = T, all.y = F)
+      df$Rapporteringsniva <- df$Navn
+      df$RegionID <- df$FK_RegionID
+      df$Fylkesnavn <- trimws(df$Fylkesnavn)
+      df$Kommunenavn <- trimws(df$Kommunenavn)
+      df$Rapporteringsniva <- trimws(df$Rapporteringsniva)
+      df$OmradeNavn <- trimws(df$OmradeNavn)
+      Obs$TakseringID <- Obs$FK_TakseringID
+      
+### 3. SUBSET DATA
+      d_1 <- df %>% filter(Aar==2021, Rapporteringsniva=="Helgeland 1")
+      d_1 <- left_join(d_1, Obs, by = "TakseringID")
+
+      #Add ArtNavn (also needed for scripts in the HFP-package)
+      d_1 <- transform(d_1, Artnavn=ifelse(FK_ArtId==1, "Lirype", 
+                                       ifelse(FK_ArtId==2, "Fjellrype",
+                                              ifelse(FK_ArtId==3, "Storfugl",
+                                                     ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
+      
+      d_1 <- d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
+      d <- d_1 #%>% filter(Rapporteringsniva!="Pasvik")
+      
+### 4. DEFINE SPECEIS - SINGLE SPECIES ANALYSIS;
+###     
+      Art1 <- "Lirype"
+      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
+      
+### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERICAILE:
+### when analysing "skogsfugl", apply this section. 
+      #Art1 <- "Skogsfugl"
+      #d <- transform(d, Artnavn==ifelse(Artnavn=="Storfugl", "Skogsfugl", 
+      #ifelse(Artnavn=="Orrfugl", "Skogsfugl", Artnavn)))
+      
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+### 5. SET DISTANCE AND CS ETC
+      d <- transform(d, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
+      d <- transform(d, AntallHann=ifelse(Artnavn==Art1, AntallHann, NA))
+      d <- transform(d, AntallHunn=ifelse(Artnavn==Art1, AntallHunn, NA))
+      d <- transform(d, AntallKylling=ifelse(Artnavn==Art1, AntallKylling, NA))
+      d <- transform(d, AntallUkjent=ifelse(Artnavn==Art1, AntallUkjent, NA))
+      d <- transform(d, cs=ifelse(Artnavn==Art1, cs, NA))
+
+### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
+
+      d <- transform(d, ad_t=AntallHann+AntallHunn)
+      #d <- transform(d, cs=ad_t+AntallUkjent+AntallKylling)      
+      d <- transform(d, ad=ifelse(cs<1.99, ad_t, 2)) 
+      d <- transform(d, juv=ifelse(cs<1.99, 0, cs-ad))  
+      
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+
+#### 7. DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
+
+    strat <- "No"   # "År", "OmradeNavn", eller "No"
+
+### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
+
+    Data_table <- dat_tab(strat)
+    Data_table_ad <- dat_tab_ad(strat=strat)
+    Obs_table <- obs_tab(strat)
+    Sample_table <- samp_tab(strat)
+    Region_table <- reg_tab(strat)
+      
+```
+
+
+```{r, echo=FALSE, message=FALSE}
+    trunk <- "11%"
+    ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
+
+     ds.model1 <-ds(Data_table, region_table=Region_table, sample_table=Sample_table, 
+            obs_table=Obs_table, 
+            adjustment=NULL, transect="line", truncation=trunk, 
+            formula= ~1, key="hn")
+    
+     ### 13: ESTIMATING ADULT DENSITY
+
+    ds.model2 <-ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, 
+            obs_table=Obs_table, 
+            adjustment=NULL, transect="line", truncation=trunk, 
+            formula= ~1, key="hn")
+
+    ### 14A: ESTIMATING BROOD SIZE POOLED
+      Rekrutt_all <- rec(strat="No")
+     
+```
+
+### Oversikt over datagrunnlaget
+
+**Tabell 1**. Deskriptiv statistikk for `r paste(d$Navn[1])` i `r paste(d$Year[1])`.  
+```{r, echo=FALSE, results='asis'}
+
+     strat <- "OmradeNavn"   # "?r", "OmradeNavn", eller "No"
+
+     Data_table <- dat_tab(strat)
+     Data_table_ad <- dat_tab_ad(strat=strat)
+     Obs_table <- obs_tab(strat)
+     Sample_table <- samp_tab(strat)
+     Region_table <- reg_tab(strat) 
+      
+     panderOptions("table.split.table", 120)
+     panderOptions("table.alignment.default", "left")
+     pander(Desc_omr(), missing="")
+     
+```
+
+Merk at estimater kun er gjort for `r paste(Art2)` (`r as.matrix(table(d$Artnavn))[1]` observasjoner, som over). Øvrige arter ble ikke observert.
+
+\pagebreak
+
+## Resultater
+
+**Tabell 2**. Resultater for `r paste(Art2)` i `r paste(d$Navn[1])` i `r paste(d$Year[1])`. Kyllingproduksjon rapporteres som antall kyllinger per par (per høne for skogsfugl). Nedre CL og Øvre CL representerer henholdsvis øvre og nedre konfidensintervall (med 95% sikkerhet), og CV representerer variasjonskoeffisienten (spredningen i resultatene).
+```{r, echo=FALSE, results='asis'}
+
+     panderOptions("table.split.table", 120)
+     panderOptions("table.alignment.default", "left")
+     pander(samle_res())
+      
+      
+```
+
+Merk at vi har endret estimeringen av antall kyllinger pr. par f.o.m. 2015. Basert på den gamle estimatoren ville antall kyllinger pr. par vært `r round((sum(d$AntallKylling, na.rm=T))/((sum(d$AntallHann, na.rm=T)+sum(d$AntallHunn, na.rm=T))/2), 1)`. Gjennomsnittlig antall kyllinger pr. obs er `r round(mean(d$AntallKylling, na.rm=T), 1)`. 
+
+\ \newline
+
+```{r, echo=FALSE}
+
+Fig1(klasser=10)   
+```
+**Figur 1**. Figuren til venstre viser oppdagbarheten fra takseringslinja og utover (totalt for området). Effektiv stripebredde (ESW) er den avstanden fra linja der det er gjort like mange observasjoner utenfor som anslått ikke funnet innenfor. Med trunkering menes her at de `r trunk` observasjoner som er lengst bort fra linja er fjernet (for å jevne ut oppdagbarhetskurven) - hvilken avstand dette gjelder er notert over. Figuren til høyre er en gjengivelse av oppdagbarhetskurven, med usikkerhetsmål angitt.
