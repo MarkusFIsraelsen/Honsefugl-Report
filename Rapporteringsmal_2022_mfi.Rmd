@@ -168,7 +168,33 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
      
 ```
 
-Merk at estimater kun er gjort for `r paste(Art2)` (`r as.matrix(table(d$Artnavn))[1]` observasjoner, som over). Øvrige arter ble ikke observert.
+
+```{r, echo = FALSE, message = FALSE}
+allSpecies = d
+#allSpecies$Artnavn[1:2] = "Fjellrype"
+#allSpecies$Artnavn[10:13] = "Jerpe"
+#allSpecies$Artnavn[30:33] = "Orrfugl"
+#allSpecies$Artnavn[34:36] = "Storfugl"
+#allSpecies$FK_ArtId[1:2] = 2
+#allSpecies$FK_ArtId[10:13] = 5
+#allSpecies$FK_ArtId[30:33] = 4
+#allSpecies$FK_ArtId[34:36] = 3
+allSpecies = allSpecies %>% mutate(Counter = ifelse(FK_ArtId >= 0, 1, NA))
+allSpeciesTable = allSpecies %>% group_by(Artnavn) %>% summarise(NObs = sum(Counter))
+allSpeciesTable = na.omit(allSpeciesTable)
+noOfSpecies = length(allSpeciesTable$Artnavn)
+willowPtar = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn == "Lirype"), ])
+otherSpecies = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn != "Lirype"), ])
+
+
+
+```
+
+Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observasjoner, som over). `r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""), 
+             ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""), 
+                    ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""), 
+                           ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""), 
+                                  ifelse(noOfSpecies == 1, "Øvrige arter ble ikke observert."))))))`
 
 \pagebreak
 
@@ -183,8 +209,6 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r as.matrix(table(d$Artnavn
       
       
 ```
-
-Merk at vi har endret estimeringen av antall kyllinger pr. par f.o.m. 2015. Basert på den gamle estimatoren ville antall kyllinger pr. par vært `r round((sum(d$AntallKylling, na.rm=T))/((sum(d$AntallHann, na.rm=T)+sum(d$AntallHunn, na.rm=T))/2), 1)`. Gjennomsnittlig antall kyllinger pr. obs er `r round(mean(d$AntallKylling, na.rm=T), 1)`. 
 
 \ \newline
 
