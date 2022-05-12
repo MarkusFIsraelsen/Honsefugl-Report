@@ -34,6 +34,7 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       library(pander)
       library(dplyr)
       library(RODBC)
+      library(ggplot2)
 
 ```
 
@@ -66,7 +67,7 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       Obs$TakseringID <- Obs$FK_TakseringID
       
 ### 3. SUBSET DATA
-      d_1 <- df %>% filter(Aar==2021, Rapporteringsniva=="Helgeland 1")
+      d_1 <- df %>% filter(Rapporteringsniva=="Helgeland 1", Aar==2021)
       d_1 <- left_join(d_1, Obs, by = "TakseringID")
 
       #Add ArtNavn (also needed for scripts in the HFP-package)
@@ -78,21 +79,12 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       d_1 <- d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
       d <- d_1 #%>% filter(Rapporteringsniva!="Pasvik")
 
-### 3B. DATA FOR TIME SERIES FIGURE
-      timeSeries = df %>% filter(Aar >= 2013, Rapporteringsniva == "Helgeland 1")
-      timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
-      timeSeries = transform(timeSeries, Artnavn = ifelse(FK_ArtId==1, "Lirype",
-                                                          ifelse(FK_ArtId==2, "Fjellrype",
-                                                                 ifelse(FK_ArtId==3, "Storfugl",
-                                                                        ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
-      timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
-      
 ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
 ###     
       Art1 <- "Lirype"
       Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
       
-### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERICAILE:
+### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERCAILLIE:
 ### when analysing "skogsfugl", apply this section. 
       #Art1 <- "Skogsfugl"
       #d <- transform(d, Artnavn==ifelse(Artnavn=="Storfugl", "Skogsfugl", 
@@ -179,14 +171,14 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
 ```{r, echo = FALSE, message = FALSE}
 
 allSpecies = d
-#allSpecies$Artnavn[1:2] = "Fjellrype"
+allSpecies$Artnavn[1:2] = "Fjellrype"
 #allSpecies$Artnavn[10:13] = "Jerpe"
-#allSpecies$Artnavn[30:33] = "Orrfugl"
-#allSpecies$Artnavn[34:36] = "Storfugl"
-#allSpecies$FK_ArtId[1:2] = 2
+allSpecies$Artnavn[30:33] = "Orrfugl"
+allSpecies$Artnavn[34:36] = "Storfugl"
+allSpecies$FK_ArtId[1:2] = 2
 #allSpecies$FK_ArtId[10:13] = 5
-#allSpecies$FK_ArtId[30:33] = 4
-#allSpecies$FK_ArtId[34:36] = 3
+allSpecies$FK_ArtId[30:33] = 4
+allSpecies$FK_ArtId[34:36] = 3
 allSpecies = allSpecies %>% mutate(Counter = ifelse(FK_ArtId >= 0, 1, NA))
 allSpeciesTable = allSpecies %>% group_by(Artnavn) %>% summarise(NObs = sum(Counter))
 allSpeciesTable = na.omit(allSpeciesTable)
@@ -220,7 +212,16 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
 \ \newline
 ```{r, echo = FALSE, message = FALSE}
 # DATA MANAGEMENT FOR TIME SERIES FIGURE
-### 5. SET DISTANCE AND CS ETC
+### DATA FOR TIME SERIES FIGURE
+timeSeries = df %>% filter(Aar >= 2013, Rapporteringsniva == "Helgeland 1")
+timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
+timeSeries = transform(timeSeries, Artnavn = ifelse(FK_ArtId==1, "Lirype",
+                                                    ifelse(FK_ArtId==2, "Fjellrype",
+                                                           ifelse(FK_ArtId==3, "Storfugl",
+                                                                  ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
+timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
+
+### SET DISTANCE AND CS ETC
 timeSeries <- transform(timeSeries, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
 timeSeries <- transform(timeSeries, AntallHann=ifelse(Artnavn==Art1, AntallHann, NA))
 timeSeries <- transform(timeSeries, AntallHunn=ifelse(Artnavn==Art1, AntallHunn, NA))
@@ -228,27 +229,35 @@ timeSeries <- transform(timeSeries, AntallKylling=ifelse(Artnavn==Art1, AntallKy
 timeSeries <- transform(timeSeries, AntallUkjent=ifelse(Artnavn==Art1, AntallUkjent, NA))
 timeSeries <- transform(timeSeries, cs=ifelse(Artnavn==Art1, cs, NA))
 
-### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
-
+### DEFINE NUMBER OF JUVENILES AND ADULTS; 
 timeSeries <- transform(timeSeries, ad_t=AntallHann+AntallHunn)
 #timeSeries <- transform(timeSeries, cs=ad_t+AntallUkjent+AntallKylling)      
 timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
 timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
 
-#### 7. DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
-
+#### DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
 strat <- "No"   # "Year", "OmradeNavn", eller "No"
-# strat = "Year"
-years = c(2013:max(unique(timeSeries$Year)))
+
+### CREATE AN EMPTY TABLE TO SAVE ALL THE ESTIMATES TO
+years = c(2013:max(unique(d$Year)))
+timeSeriesDF = matrix(data = c(rep(NA, 15)*length(years)), nrow = 3*length(years), ncol = 5, dimnames = list(c(), c("Estimat", "Nedre CL", "Øvre CL", "År", "Faktor")))
+timeSeriesDF = as.data.frame(timeSeriesDF)
+timeSeriesDF$År = c(sort(rep(years, 3)))
+timeSeriesDF$Faktor = c(rep(c(1, 2, 3), length(years))) # 1 = total tetthet, 2 = tetthet av voksen fugl, 3 = kyllingproduksjon
+
 counter = 0
+estimat = c()
+nedreCL = c()
+ovreCL = c()
 for(i in years){
   
+  d = timeSeries # Set the timeseries dataset equal to "d" so that the functions below work as intended
   counter = counter + 1
-  timeSeriesMod = timeSeries %>% filter(Year == years[counter])
+  d = d %>% filter(Year == years[counter])
   ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
   
-      Data_table <- dat_tab(strat, dataset = timeSeriesMod)
-      Data_table_ad <- dat_tab_ad(strat=strat, dataset = timeSeriesMod)
+      Data_table <- dat_tab(strat, dataset = d)
+      Data_table_ad <- dat_tab_ad(strat=strat, dataset = d)
       Obs_table <- obs_tab(strat)
       Sample_table <- samp_tab(strat)
       Region_table <- reg_tab(strat)
@@ -273,10 +282,28 @@ for(i in years){
   ### 14A: ESTIMATING BROOD SIZE POOLED
       Rekrutt_all <- rec(strat="No")
       
-  pander(samle_res())
+  estimat = append(estimat, as.numeric(samle_res()$Estimat))
+  nedreCL = append(nedreCL, as.numeric(samle_res()$`Nedre CL`))
+  ovreCL = append(ovreCL, as.numeric(samle_res()$`Øvre CL`))
 }
 
+timeSeriesDF$Estimat = estimat
+timeSeriesDF$`Nedre CL` = nedreCL
+timeSeriesDF$`Øvre CL` = ovreCL
         
+```
+
+```{r}
+# SUBSET DATA AND CREATE FIGURES FOR TIME SERIES DATA
+timeSeriesDF$År = as.character.Date(timeSeriesDF$År)
+timeSeriesTot = timeSeriesDF %>% filter(Faktor == 1)
+timeSeriesAd = timeSeriesDF %>% filter(Faktor == 2)
+timeSeriesChick = timeSeriesDF %>% filter(Faktor == 3)
+
+ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + 
+  geom_line( color="black", size=1, alpha=0.9, linetype=1) +
+  labs(title = "Helgeland 1", subtitle = bquote("Total tetthet - Antall fugl/"*km^2)) + xlab("Year") + ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) + geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1) + theme(axis.title.y = element_text(size = 14))
+
 ```
 
 
