@@ -35,6 +35,7 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       library(dplyr)
       library(RODBC)
       library(ggplot2)
+      library(ggpubr)
 
 ```
 
@@ -293,16 +294,50 @@ timeSeriesDF$`Øvre CL` = ovreCL
         
 ```
 
-```{r}
+```{r, echo = FALSE, message = FALSE}
 # SUBSET DATA AND CREATE FIGURES FOR TIME SERIES DATA
 timeSeriesDF$År = as.character.Date(timeSeriesDF$År)
 timeSeriesTot = timeSeriesDF %>% filter(Faktor == 1)
 timeSeriesAd = timeSeriesDF %>% filter(Faktor == 2)
 timeSeriesChick = timeSeriesDF %>% filter(Faktor == 3)
 
-ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + 
-  geom_line( color="black", size=1, alpha=0.9, linetype=1) +
-  labs(title = "Helgeland 1", subtitle = bquote("Total tetthet - Antall fugl/"*km^2)) + xlab("Year") + ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) + geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1) + theme(axis.title.y = element_text(size = 14))
+timeSeries$Year = as.character.Date(timeSeries$Year)
+timeSeries = timeSeries %>% mutate(NumLines = 1)
+timeSeriesRodents = timeSeries %>% group_by(Year) %>% summarise(SeeRodPercent = (sum(SettSMagnager)/sum(NumLines))*100)
+
+tsTotPlot = ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + 
+  geom_line(color="black", size=1, alpha=1, linetype=1) +
+  labs(title = "Helgeland 1", subtitle = bquote("Total tetthet - Antall fugl/"*km^2)) + 
+  xlab("År") + 
+  ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) + 
+  geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1, fill = "steelblue") + theme(axis.title.y = element_text(size = 14)) 
+
+tsAdPlot = ggplot(data = timeSeriesAd, aes(x = År, y = Estimat, group = Faktor)) + 
+  geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
+  labs(title = "Helgeland 1 ", subtitle = bquote("Voksen tetthet - Antall fugl/"*km^2)) +
+  xlab("År") +
+  ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) +
+  geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1, fill = "steelblue") +
+  theme(axis.title.y = element_text(size = 14))
+
+tsChickPlot = ggplot(data = timeSeriesChick, aes(x = År, y = Estimat, group = Faktor)) + 
+  geom_line(color = "black", size = 1, alpha = 1, linetype = 1) + 
+  labs(title = "Helgeland 1", subtitle = bquote("Kylling tetthet - Antall fugl/"*km^2)) + 
+  xlab("År") + 
+  ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) +
+  geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1, fill = "steelblue") +
+  theme(axis.title.y = element_text(size = 14))
+
+tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + 
+  geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
+  labs(title = "Helgeland 1", subtitle = bquote("Smågnager observasjoner")) +
+  xlab("År") +
+  ylab("Andel smågnager obs. (%)") +
+  theme(axis.title.y = element_text(size = 10))
+
+ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
+
+ggsave(filename = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figure/Figure1.jpg")
 
 ```
 
