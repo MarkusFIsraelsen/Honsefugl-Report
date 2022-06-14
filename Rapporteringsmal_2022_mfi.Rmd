@@ -39,8 +39,6 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
 
 ```
 
-
-
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 ### 2. LOAD AND FORMAT DATA SET
@@ -53,6 +51,9 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       Region <- sqlQuery(conn, paste("SELECT ID, Navn, FK_RegionID FROM Rapporteringsnivaa"))
       Obs <- sqlQuery(conn, paste("SELECT ObservasjonId, Aar, LinjeAvstand, FK_TakseringID, AntallHann, AntallHunn, AntallKylling, AntallUkjent, FK_ArtId FROM Observasjon"))
       close(conn)
+      
+      # Hente ut hvilke linjer som er aktive
+      #Ja, det hentes ut fra tabellen "Takseringslinje": sqlQuery(conn, paste("SELECT LinjeID, FK_OmradeID, STAsText, Linjenavn, Aktiv FROM Takseringslinje"))
       
       #Merge data
       df <- merge(Taks, TaksLin, by.x = "FK_LinjeID", by.y = "LinjeID", all.x = T, all.y = F)
@@ -68,7 +69,17 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       Obs$TakseringID <- Obs$FK_TakseringID
       
 ### 3. SUBSET DATA
-      d_1 <- df %>% filter(Rapporteringsniva=="Helgeland 1", Aar==2021)
+      ReportLevel = df$Rapporteringsniva
+      ReportLevel = gsub("Ã¸", "ø", x = ReportLevel)
+      ReportLevel = gsub("Ã…", "Å", x = ReportLevel)
+      ReportLevel = gsub("Ã˜", "Ø", x = ReportLevel)
+      ReportLevel = gsub("Ã¥", "å", x = ReportLevel)
+      ReportLevel = gsub("Ã¦", "æ", x = ReportLevel)
+      df$Rapporteringsniva = ReportLevel
+      
+      ReportLevelOut = "Helgeland 1"
+      
+      d_1 <- df %>% filter(Rapporteringsniva==ReportLevelOut, Aar==2021)
       d_1 <- left_join(d_1, Obs, by = "TakseringID")
 
       #Add ArtNavn (also needed for scripts in the HFP-package)
@@ -172,14 +183,14 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
 ```{r, echo = FALSE, message = FALSE}
 
 allSpecies = d
-allSpecies$Artnavn[1:2] = "Fjellrype"
+#allSpecies$Artnavn[1:2] = "Fjellrype"
 #allSpecies$Artnavn[10:13] = "Jerpe"
-allSpecies$Artnavn[30:33] = "Orrfugl"
-allSpecies$Artnavn[34:36] = "Storfugl"
-allSpecies$FK_ArtId[1:2] = 2
+#allSpecies$Artnavn[30:33] = "Orrfugl"
+#allSpecies$Artnavn[34:36] = "Storfugl"
+#allSpecies$FK_ArtId[1:2] = 2
 #allSpecies$FK_ArtId[10:13] = 5
-allSpecies$FK_ArtId[30:33] = 4
-allSpecies$FK_ArtId[34:36] = 3
+#allSpecies$FK_ArtId[30:33] = 4
+#allSpecies$FK_ArtId[34:36] = 3
 allSpecies = allSpecies %>% mutate(Counter = ifelse(FK_ArtId >= 0, 1, NA))
 allSpeciesTable = allSpecies %>% group_by(Artnavn) %>% summarise(NObs = sum(Counter))
 allSpeciesTable = na.omit(allSpeciesTable)
@@ -214,130 +225,150 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
 ```{r, echo = FALSE, message = FALSE}
 # DATA MANAGEMENT FOR TIME SERIES FIGURE
 ### DATA FOR TIME SERIES FIGURE
-timeSeries = df %>% filter(Aar >= 2013, Rapporteringsniva == "Helgeland 1")
-timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
-timeSeries = transform(timeSeries, Artnavn = ifelse(FK_ArtId==1, "Lirype",
-                                                    ifelse(FK_ArtId==2, "Fjellrype",
-                                                           ifelse(FK_ArtId==3, "Storfugl",
-                                                                  ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
-timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
 
-### SET DISTANCE AND CS ETC
-timeSeries <- transform(timeSeries, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
-timeSeries <- transform(timeSeries, AntallHann=ifelse(Artnavn==Art1, AntallHann, NA))
-timeSeries <- transform(timeSeries, AntallHunn=ifelse(Artnavn==Art1, AntallHunn, NA))
-timeSeries <- transform(timeSeries, AntallKylling=ifelse(Artnavn==Art1, AntallKylling, NA))
-timeSeries <- transform(timeSeries, AntallUkjent=ifelse(Artnavn==Art1, AntallUkjent, NA))
-timeSeries <- transform(timeSeries, cs=ifelse(Artnavn==Art1, cs, NA))
-
-### DEFINE NUMBER OF JUVENILES AND ADULTS; 
-timeSeries <- transform(timeSeries, ad_t=AntallHann+AntallHunn)
-#timeSeries <- transform(timeSeries, cs=ad_t+AntallUkjent+AntallKylling)      
-timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
-timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
-
-#### DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
-strat <- "No"   # "Year", "OmradeNavn", eller "No"
-
-### CREATE AN EMPTY TABLE TO SAVE ALL THE ESTIMATES TO
-years = c(2013:max(unique(d$Year)))
-timeSeriesDF = matrix(data = c(rep(NA, 15)*length(years)), nrow = 3*length(years), ncol = 5, dimnames = list(c(), c("Estimat", "Nedre CL", "Øvre CL", "År", "Faktor")))
-timeSeriesDF = as.data.frame(timeSeriesDF)
-timeSeriesDF$År = c(sort(rep(years, 3)))
-timeSeriesDF$Faktor = c(rep(c(1, 2, 3), length(years))) # 1 = total tetthet, 2 = tetthet av voksen fugl, 3 = kyllingproduksjon
-
-counter = 0
-estimat = c()
-nedreCL = c()
-ovreCL = c()
-for(i in years){
+  timeSeries = df %>% filter(Aar >= 2013, Rapporteringsniva == ReportLevelOut)
+  timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
+  timeSeries = transform(timeSeries, Artnavn = ifelse(FK_ArtId==1, "Lirype",
+                                                      ifelse(FK_ArtId==2, "Fjellrype",
+                                                             ifelse(FK_ArtId==3, "Storfugl",
+                                                                    ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
+  timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
   
-  d = timeSeries # Set the timeseries dataset equal to "d" so that the functions below work as intended
-  counter = counter + 1
-  d = d %>% filter(Year == years[counter])
-  ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
+  ### SET DISTANCE AND CS ETC
+  timeSeries <- transform(timeSeries, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
+  timeSeries <- transform(timeSeries, AntallHann=ifelse(Artnavn==Art1, AntallHann, NA))
+  timeSeries <- transform(timeSeries, AntallHunn=ifelse(Artnavn==Art1, AntallHunn, NA))
+  timeSeries <- transform(timeSeries, AntallKylling=ifelse(Artnavn==Art1, AntallKylling, NA))
+  timeSeries <- transform(timeSeries, AntallUkjent=ifelse(Artnavn==Art1, AntallUkjent, NA))
+  timeSeries <- transform(timeSeries, cs=ifelse(Artnavn==Art1, cs, NA))
   
-      Data_table <- dat_tab(strat, dataset = d)
-      Data_table_ad <- dat_tab_ad(strat=strat, dataset = d)
-      Obs_table <- obs_tab(strat)
-      Sample_table <- samp_tab(strat)
-      Region_table <- reg_tab(strat)
-      
-      # panderOptions("table.split.table", 120)
-      # panderOptions("table.alignment.default", "left")
-      # pander(Desc_omr(), missing="")
+  ### DEFINE NUMBER OF JUVENILES AND ADULTS; 
+  timeSeries <- transform(timeSeries, ad_t=AntallHann+AntallHunn)
+  #timeSeries <- transform(timeSeries, cs=ad_t+AntallUkjent+AntallKylling)      
+  timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
+  timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
   
-  trunk <- "11%"
-  ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
-      ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, 
-            obs_table=Obs_table, 
-            adjustment=NULL, transect="line", truncation=trunk, 
-            formula= ~1, key="hn")
-      
-  ### 13: ESTIMATING ADULT DENSITY
-      ds.model2 <- ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, 
-            obs_table=Obs_table, 
-            adjustment=NULL, transect="line", truncation=trunk, 
-            formula= ~1, key="hn")
+  #### DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
+  strat <- "No"   # "Year", "OmradeNavn", eller "No"
   
-  ### 14A: ESTIMATING BROOD SIZE POOLED
-      Rekrutt_all <- rec(strat="No")
-      
-  estimat = append(estimat, as.numeric(samle_res()$Estimat))
-  nedreCL = append(nedreCL, as.numeric(samle_res()$`Nedre CL`))
-  ovreCL = append(ovreCL, as.numeric(samle_res()$`Øvre CL`))
-}
-
-timeSeriesDF$Estimat = estimat
-timeSeriesDF$`Nedre CL` = nedreCL
-timeSeriesDF$`Øvre CL` = ovreCL
+  ### CREATE AN EMPTY TABLE TO SAVE ALL THE ESTIMATES TO
+  years = c(2013:max(unique(d$Year)))
+  timeSeriesDF = matrix(data = c(rep(NA, 15)*length(years)), nrow = 3*length(years), ncol = 5, dimnames = list(c(), c("Estimat", "Nedre CL", "Øvre CL", "År", "Faktor")))
+  timeSeriesDF = as.data.frame(timeSeriesDF)
+  timeSeriesDF$År = c(sort(rep(years, 3)))
+  timeSeriesDF$Faktor = c(rep(c(1, 2, 3), length(years))) # 1 = total tetthet, 2 = tetthet av voksen fugl, 3 = kyllingproduksjon
+  
+  #counter = 0
+  estimat = c()
+  nedreCL = c()
+  ovreCL = c()
+  censusStart = 0
+  for(i in 1:length(years)){
+    
+    d = timeSeries # Set the timeseries dataset equal to "d" so that the functions below work as intended
+    #counter = counter + 1
+    d = d %>% filter(Year == years[i])
+    
+    # CHECK IF THE AREA HAD STARTED CENSUS IN 2013
+    while(dim(d)[1] == 0){
+      #counter = counter + 1
+      #i = years[counter]
+      i = i + 1
+      d = timeSeries %>% filter(Year == years[i])
+      censusStart = censusStart + 1
+    }
+    
+    ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
+    
+        Data_table <- dat_tab(strat, dataset = d)
+        Data_table_ad <- dat_tab_ad(strat=strat, dataset = d)
+        Obs_table <- obs_tab(strat)
+        Sample_table <- samp_tab(strat)
+        Region_table <- reg_tab(strat)
         
-```
+        # panderOptions("table.split.table", 120)
+        # panderOptions("table.alignment.default", "left")
+        # pander(Desc_omr(), missing="")
+    
+    trunk <- "11%"
+    ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
+        ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, 
+              obs_table=Obs_table, 
+              adjustment=NULL, transect="line", truncation=trunk, 
+              formula= ~1, key="hn")
+        
+    ### 13: ESTIMATING ADULT DENSITY
+        ds.model2 <- ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, 
+              obs_table=Obs_table, 
+              adjustment=NULL, transect="line", truncation=trunk, 
+              formula= ~1, key="hn")
+    
+    ### 14A: ESTIMATING BROOD SIZE POOLED
+        Rekrutt_all <- rec(strat="No")
+        
+    estimat = append(estimat, as.numeric(samle_res()$Estimat))
+    nedreCL = append(nedreCL, as.numeric(samle_res()$`Nedre CL`))
+    ovreCL = append(ovreCL, as.numeric(samle_res()$`Øvre CL`))
+  }
+  
+  if(censusStart > 0){
+    for(i in 1:max(censusStart)){
+      estimat[seq(1:(censusStart*3))] = NA
+      nedreCL[seq(1:(censusStart*3))] = NA
+      ovreCL[seq(1:(censusStart*3))] = NA
+    }
+  }
+  
+  timeSeriesDF$Estimat = estimat
+  timeSeriesDF$`Nedre CL` = nedreCL
+  timeSeriesDF$`Øvre CL` = ovreCL
+          
+  # SUBSET DATA AND CREATE FIGURES FOR TIME SERIES DATA
+  timeSeriesDF$År = as.character.Date(timeSeriesDF$År)
+  timeSeriesTot = timeSeriesDF %>% filter(Faktor == 1)
+  timeSeriesAd = timeSeriesDF %>% filter(Faktor == 2)
+  timeSeriesChick = timeSeriesDF %>% filter(Faktor == 3)
+  
+  # HAVE TO CHECK THAT "SEEN RODENTS" IS CORRECT (WE WANT THE NUMBER OF OBS / NUMBER OF ACTIVE LINES)
+  timeSeries$Year = as.character.Date(timeSeries$Year)
+  timeSeries = timeSeries %>% mutate(NumLines = 1)
+  timeSeriesRodents = timeSeries %>% group_by(Year) %>% summarise(SeeRodPercent = (sum(SettSMagnager)/sum(NumLines))*100)
+  
+  plotName = unique(d$Rapporteringsniva)
+  tsTotPlot = ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + 
+    geom_line(color="black", size=1, alpha=1, linetype=1) +
+    labs(title = plotName, subtitle = bquote("Total tetthet - Antall fugl/"*km^2)) + 
+    xlab("År") + 
+    ylab(bquote(phantom(0)["Tetthet (95% KI)"])) + 
+    geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + ylim(0, ceiling(max(timeSeriesTot$`Øvre CL`, na.rm = TRUE))) 
+  
+  tsAdPlot = ggplot(data = timeSeriesAd, aes(x = År, y = Estimat, group = Faktor)) + 
+    geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
+    labs(title = plotName, subtitle = bquote("Voksen tetthet - Antall fugl/"*km^2)) +
+    xlab("År") +
+    ylab(bquote(phantom(0)["Tetthet (95% KI)"])) +
+    geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") +
+    theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + ylim(0, ceiling(max(timeSeriesAd$`Øvre CL`, na.rm = TRUE)))
+  
+  tsChickPlot = ggplot(data = timeSeriesChick, aes(x = År, y = Estimat, group = Faktor)) + 
+      geom_line(color = "black", size = 1, alpha = 1, linetype = 1) + 
+      labs(title = plotName, subtitle = bquote("Kylling tetthet - Antall fugl/"*km^2)) + 
+      xlab("År") + 
+      ylab(bquote(phantom(0)["Tetthet (95% KI)"])) +
+      geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") +
+      theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + ylim(0, ceiling(max(timeSeriesChick$`Øvre CL`, na.rm = TRUE))) 
+  
+  tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + 
+    geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
+    labs(title = plotName, subtitle = bquote("Smågnager observasjoner")) +
+    xlab("År") +
+    ylab("Andel smågnager obs. (%)") +
+    theme(text = element_text(size = 8))
+  
+  ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
+  
+  ggsave(filename = paste("C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figure/", ReportLevelOut, ".jpg", sep = ""))
 
-```{r, echo = FALSE, message = FALSE}
-# SUBSET DATA AND CREATE FIGURES FOR TIME SERIES DATA
-timeSeriesDF$År = as.character.Date(timeSeriesDF$År)
-timeSeriesTot = timeSeriesDF %>% filter(Faktor == 1)
-timeSeriesAd = timeSeriesDF %>% filter(Faktor == 2)
-timeSeriesChick = timeSeriesDF %>% filter(Faktor == 3)
-
-timeSeries$Year = as.character.Date(timeSeries$Year)
-timeSeries = timeSeries %>% mutate(NumLines = 1)
-timeSeriesRodents = timeSeries %>% group_by(Year) %>% summarise(SeeRodPercent = (sum(SettSMagnager)/sum(NumLines))*100)
-
-tsTotPlot = ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + 
-  geom_line(color="black", size=1, alpha=1, linetype=1) +
-  labs(title = "Helgeland 1", subtitle = bquote("Total tetthet - Antall fugl/"*km^2)) + 
-  xlab("År") + 
-  ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) + 
-  geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1, fill = "steelblue") + theme(axis.title.y = element_text(size = 14)) 
-
-tsAdPlot = ggplot(data = timeSeriesAd, aes(x = År, y = Estimat, group = Faktor)) + 
-  geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-  labs(title = "Helgeland 1 ", subtitle = bquote("Voksen tetthet - Antall fugl/"*km^2)) +
-  xlab("År") +
-  ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) +
-  geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1, fill = "steelblue") +
-  theme(axis.title.y = element_text(size = 14))
-
-tsChickPlot = ggplot(data = timeSeriesChick, aes(x = År, y = Estimat, group = Faktor)) + 
-  geom_line(color = "black", size = 1, alpha = 1, linetype = 1) + 
-  labs(title = "Helgeland 1", subtitle = bquote("Kylling tetthet - Antall fugl/"*km^2)) + 
-  xlab("År") + 
-  ylab(bquote(phantom(0)["Tetthet ("%+-%"SE)"])) +
-  geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.1, fill = "steelblue") +
-  theme(axis.title.y = element_text(size = 14))
-
-tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + 
-  geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-  labs(title = "Helgeland 1", subtitle = bquote("Smågnager observasjoner")) +
-  xlab("År") +
-  ylab("Andel smågnager obs. (%)") +
-  theme(axis.title.y = element_text(size = 10))
-
-ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
-
-ggsave(filename = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figure/Figure1.jpg")
 
 ```
 
