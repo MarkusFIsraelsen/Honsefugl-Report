@@ -36,10 +36,12 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       library(RODBC)
       library(ggplot2)
       library(ggpubr)
+      library(lubridate)
+      library(xml2)
 
 ```
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r DATA IMPORT NINA, echo=FALSE, message=FALSE, warning=FALSE}
 
 ### 2. LOAD AND FORMAT DATA SET
 
@@ -78,7 +80,7 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       df$Rapporteringsniva = ReportLevel
       
       # Report level variable that will be used for sub-setting data and plotting
-      ReportLevelOut = "Troms Ytre"
+      ReportLevelOut = "Troms Ytre" 
       
       d_1 <- df %>% filter(Rapporteringsniva==ReportLevelOut, Aar==2021)
       d_1 <- left_join(d_1, Obs, by = "TakseringID")
@@ -105,6 +107,73 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       
 ```
 
+```{r DATA IMPORT EVENSTAD}
+
+# Function to read XML files into R
+readExcelXML <- function(filename, sheet) {
+        require(xml2)
+        doc <- read_xml(filename)
+        ns <- xml_ns(doc)
+        rows <- xml_find_all(doc, paste0(".//ss:Worksheet[@ss:Name='", sheet, "']/ss:Table/ss:Row"), ns = ns)
+        values <- lapply(rows, . %>% xml_find_all(".//ss:Cell/ss:Data", ns = ns) %>% xml_text %>% unlist)
+        columnNames <- values[[1]]
+        
+        dat <- do.call(rbind.data.frame, c(values[-1], stringsAsFactors = FALSE))
+        names(dat) <- columnNames
+        
+        # tilegn kolonnetyper --> NB! Gjort manuelt (funker ikke automatisk) - må ev. oppdateres hvis endringer i eksport-format
+        #types <- rows[[2]] %>% xml_find_all(".//ss:Cell/ss:Data") %>% xml_attrs %>% unlist %>% setNames(nm = names(dat))
+        types <- c("Number","String","Number","String","Number","String","Number","String","Number","String","Number","String",
+          "String","Number","String","Number","String","String","String","Number","Number","Number","String","Number",
+          "String","String","Number","Number","Number","Number","Number","String","String","String","String","String")
+        names(types) <- names(dat)
+        funcs <- c("Number" = as.integer, "String" = as.character, "DateTime" = . %>% as.POSIXct(format = "%Y-%m-%dT%H:%M:%S."))
+
+        for (iCol in names(dat)) {
+          dat[[iCol]] <- funcs[[types[iCol]]](dat[[iCol]])
+        }
+        
+        dat
+      }
+
+
+df = readExcelXML("C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/XML/Rapport_2_21_0_0_Helgeland_1_2013-2021.xml", "Sheet1")
+df = df %>% mutate(Aar = year(dmy(substr(paste(df$Dato), start = 1, stop = 10)))) # Add year to all observations
+df = df %>% mutate(FK_ArtId = ifelse(Artnavn == "Lirype", 1, 
+                                     ifelse(Artnavn == "Fjellrype", 2, 
+                                            ifelse(Artnavn == "Storfugl", 3, 
+                                                   ifelse(Artnavn == "Orrfugl", 4, 
+                                                          ifelse(Artnavn == "Jerpe", 5, Artnavn))))))
+df = df %>% mutate(Rapporteringsniva = Navn)
+df = df %>% mutate(SettUkjentSmagnager = ifelse(SettUkjentSmagnager == "True", 1, 0), SettMus = ifelse(SettMus == "True", 1, 0), SettLemen = ifelse(SettLemen == "True", 1, 0)) 
+df = df %>% mutate(SettSmagnager = c(SettUkjentSmagnager+SettMus+SettLemen))
+
+# Fix problems with æ, ø and å letters (if present)
+      ReportLevel = df$Rapporteringsniva
+      ReportLevel = gsub("Ã¸", "ø", x = ReportLevel)
+      ReportLevel = gsub("Ã…", "Å", x = ReportLevel)
+      ReportLevel = gsub("Ã˜", "Ø", x = ReportLevel)
+      ReportLevel = gsub("Ã¥", "å", x = ReportLevel)
+      ReportLevel = gsub("Ã¦", "æ", x = ReportLevel)
+      df$Rapporteringsniva = ReportLevel
+      
+      # Report level variable that will be used for sub-setting data and plotting
+      ReportLevelOut = "Helgeland 1" 
+      
+      d_1 = df %>% filter(Navn==ReportLevelOut, Aar==2021)
+      
+      d_1 = d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar)
+      d = d_1 #%>% filter(Rapporteringsniva!="Pasvik")
+
+### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
+###     
+      Art1 <- "Lirype"
+      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
+      
+    
+      #Obs = df %>% dplyr::select(ObservasjonId, Aar, LinjeAvstand, TakseringID, AntallHann, AntallHunn, AntallKylling, AntallUkjent, FK_ArtId)
+
+```
 
 ```{r, echo=FALSE, message=FALSE}
 ### 5. SET DISTANCE AND CS ETC
@@ -186,14 +255,14 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
 allSpecies = d
 
 # Added some more species to show how it would look (CODE MUST BE REMOVED LATER) 
-allSpecies$Artnavn[1:2] = "Fjellrype"
-allSpecies$Artnavn[10:13] = "Jerpe"
-allSpecies$Artnavn[30:33] = "Orrfugl"
-allSpecies$Artnavn[34:36] = "Storfugl"
-allSpecies$FK_ArtId[1:2] = 2
-allSpecies$FK_ArtId[10:13] = 5
-allSpecies$FK_ArtId[30:33] = 4
-allSpecies$FK_ArtId[34:36] = 3
+#allSpecies$Artnavn[1:2] = "Fjellrype"
+#allSpecies$Artnavn[10:13] = "Jerpe"
+#allSpecies$Artnavn[30:33] = "Orrfugl"
+#allSpecies$Artnavn[34:36] = "Storfugl"
+#allSpecies$FK_ArtId[1:2] = 2
+#allSpecies$FK_ArtId[10:13] = 5
+#allSpecies$FK_ArtId[30:33] = 4
+#allSpecies$FK_ArtId[34:36] = 3
 
 allSpecies = allSpecies %>% mutate(Counter = ifelse(FK_ArtId >= 0, 1, NA))
 allSpeciesTable = allSpecies %>% group_by(Artnavn) %>% summarise(NObs = sum(Counter))
@@ -229,12 +298,13 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
 ### DATA FOR TIME SERIES FIGURE
 
   timeSeries = df %>% filter(Aar >= 2013, Rapporteringsniva == ReportLevelOut)
-  timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
-  timeSeries = transform(timeSeries, Artnavn = ifelse(FK_ArtId==1, "Lirype",
-                                                      ifelse(FK_ArtId==2, "Fjellrype",
-                                                             ifelse(FK_ArtId==3, "Storfugl",
-                                                                    ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
-  timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
+  #timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
+  #timeSeries = transform(timeSeries, Artnavn = ifelse(FK_ArtId==1, "Lirype",
+  #                                                    ifelse(FK_ArtId==2, "Fjellrype",
+  #                                                           ifelse(FK_ArtId==3, "Storfugl",
+  #                                                                  ifelse(FK_ArtId==4, "Orrfugl", "Jerpe")))))
+  #timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar, LinjeID = FK_LinjeID)
+  timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar)
   
   ### SET DISTANCE AND CS ETC
   timeSeries <- transform(timeSeries, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
@@ -246,7 +316,7 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
   
   ### DEFINE NUMBER OF JUVENILES AND ADULTS; 
   timeSeries <- transform(timeSeries, ad_t=AntallHann+AntallHunn)
-  #timeSeries <- transform(timeSeries, cs=ad_t+AntallUkjent+AntallKylling)      
+  timeSeries <- transform(timeSeries, cs=ad_t+AntallUkjent+AntallKylling)      
   timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
   timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
   
@@ -266,8 +336,8 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
   ovreCL = c()
   censusStart = 0
   for(i in 1:length(years)){
-    
-    print(i)
+
+    print(paste(i, "Start", sep = " "))
     d = timeSeries # Set the timeseries dataset equal to "d" so that the functions below work as intended
     d = d %>% filter(Year == years[i])
     
@@ -281,22 +351,21 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
     # Check Data_table - Number of obs and number of distance == 0
     checkDT = dat_tab(strat, dataset = d) %>% count(distance)
     sumN = sum(checkDT$n)
-    if(sumN < 20){ # If TRUE this years estimates have to be set as NA
-      
+    propDistZero = checkDT[which(checkDT$distance == 0), 2] / sumN
+    if(length(propDistZero) == 0){
+      propDistZero = 0
     }
     
-    # YOU ALMOST HAVE IT
-    propDistZero = checkDT[which(checkDT$distance == 0), 2] / sumN
-    if(propDistZero > 0.40){ # If TRUE this years estimates have to be set as NA
+    if(propDistZero > 0.40 | sumN < 20){ # If TRUE this years estimates have to be set as NA
       i = i + 1
-      d = timeSeries %>% filter(Year == years[i])
+      #d = timeSeries %>% filter(Year == years[i])
       estimat = append(estimat, rep(NA, 3))
       nedreCL = append(nedreCL, rep(NA, 3))
       ovreCL = append(ovreCL, rep(NA, 3))
     }
     
-    
-    ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
+    else{
+      ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
     
     Data_table <- dat_tab(strat, dataset = d)
     Data_table_ad <- dat_tab_ad(strat=strat, dataset = d)
@@ -326,6 +395,8 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
     estimat = append(estimat, as.numeric(samle_res()$Estimat))
     nedreCL = append(nedreCL, as.numeric(samle_res()$`Nedre CL`))
     ovreCL = append(ovreCL, as.numeric(samle_res()$`Øvre CL`))
+    }
+    print(paste(i, "End", sep = " "))
   }
   
   # If some of the first years are missing (monitoring had not started yet) the rows are set as NA
@@ -365,7 +436,7 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
   }
   
   # Total density plot
-  tsTotPlot = ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + 
+  tsTotPlot = ggplot(data = timeSeriesTot, aes(x=År, y=Estimat, group = Faktor)) + geom_point() +
     geom_line(color="black", size=1, alpha=1, linetype=1) +
     labs(title = ReportLevelOut, subtitle = bquote("a) Total tetthet - Antall fugl/"*km^2)) + 
     xlab("År") + 
@@ -373,7 +444,7 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
     geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesTot$`Øvre CL`, na.rm = TRUE))))
   
   # Adult density plot
-  tsAdPlot = ggplot(data = timeSeriesAd, aes(x = År, y = Estimat, group = Faktor)) + 
+  tsAdPlot = ggplot(data = timeSeriesAd, aes(x = År, y = Estimat, group = Faktor)) + geom_point() +
     geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
     labs(title = ReportLevelOut, subtitle = bquote("b) Voksen tetthet - Antall fugl/"*km^2)) +
     xlab("År") +
@@ -382,7 +453,7 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
     theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesAd$`Øvre CL`, na.rm = TRUE))))
   
   # Chick density plot
-  tsChickPlot = ggplot(data = timeSeriesChick, aes(x = År, y = Estimat, group = Faktor)) + 
+  tsChickPlot = ggplot(data = timeSeriesChick, aes(x = År, y = Estimat, group = Faktor)) + geom_point() +
       geom_line(color = "black", size = 1, alpha = 1, linetype = 1) + 
       labs(title = ReportLevelOut, subtitle = bquote("c) Kylling tetthet - Antall fugl/"*km^2)) + 
       xlab("År") + 
@@ -391,7 +462,7 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
       theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesChick$`Øvre CL`, na.rm = TRUE)))) 
   
   # Proportion of rodents observered plot
-  tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + 
+  tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + geom_point() +
     geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
     labs(title = ReportLevelOut, subtitle = bquote("d) Smågnager observasjoner")) +
     xlab("År") +
@@ -402,7 +473,7 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
   ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
   
   # Save the plot with naming including area and last year of monitoring
-  ggsave(filename = paste("C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/", ReportLevelOut, "-", max(years), ".jpg", sep = ""), width = 7, height = 7, units = "in")
+  #ggsave(filename = paste("C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/", ReportLevelOut, "-", max(years), ".jpg", sep = ""), width = 7, height = 7, units = "in")
 
 
 ```
