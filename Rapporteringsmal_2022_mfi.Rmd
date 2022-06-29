@@ -80,10 +80,18 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       df$Rapporteringsniva = ReportLevel
       
       # Report level variable that will be used for sub-setting data and plotting
-      #ReportLevelOut = sample(unique(ReportLevel), size = 1, replace = FALSE) # DELETE AFTER TESTING
-      ReportLevelOut = "Plahtes Eiendommer" 
+      ReportLevelOut = sample(unique(ReportLevel), size = 1, replace = FALSE) # DELETE AFTER TESTING
+      #ReportLevelOut = "Bjoreidalen - syd/nord" 
+      AarInput = 2021
       
-      d_1 <- df %>% filter(Rapporteringsniva==ReportLevelOut, Aar==2021)
+      d_1 <- df %>% filter(Rapporteringsniva==ReportLevelOut, Aar==AarInput)
+      
+      j = 0
+      while(dim(d_1)[1] == 0){
+        j = j + 1
+        d_1 = df %>% filter(Rapporteringsniva == ReportLevelOut, Aar == AarInput - j)
+      }
+      
       d_1 <- left_join(d_1, Obs, by = "TakseringID")
 
       #Add ArtNavn (also needed for scripts in the HFP-package)
@@ -100,12 +108,19 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       Art1 <- "Lirype"
       Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
       
+# ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
+# ###     
+#       Art1 <- "Lirype"
+#       Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
+#       
 ### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERCAILLIE:
 ### when analysing "skogsfugl", apply this section. 
       #Art1 <- "Skogsfugl"
       #d <- transform(d, Artnavn==ifelse(Artnavn=="Storfugl", "Skogsfugl", 
       #ifelse(Artnavn=="Orrfugl", "Skogsfugl", Artnavn)))
+      
       message(ReportLevelOut) # USED FOR TESTING TO SEE WHICH AREA CREATES ERRORS
+      
 ```
 
 ```{r DATA IMPORT EVENSTAD, eval = FALSE, echo = FALSE, message = FALSE}
@@ -185,13 +200,13 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
       d <- transform(d, AntallUkjent=ifelse(Artnavn==Art1, AntallUkjent, NA))
       d <- transform(d, cs=ifelse(Artnavn==Art1, cs, NA))
 
-### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
+# ### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
 
       d <- transform(d, ad_t=AntallHann+AntallHunn)
-      #d <- transform(d, cs=ad_t+AntallUkjent+AntallKylling)      
-      d <- transform(d, ad=ifelse(cs<1.99, ad_t, 2)) 
-      d <- transform(d, juv=ifelse(cs<1.99, 0, cs-ad))  
-      
+      #d <- transform(d, cs=ad_t+AntallUkjent+AntallKylling)
+      d <- transform(d, ad=ifelse(cs<1.99, ad_t, 2))
+      d <- transform(d, juv=ifelse(cs<1.99, 0, cs-ad))
+
 ```
 
 ```{r 2 - NINA & EVENSTAD, echo=FALSE, message=FALSE}
@@ -337,21 +352,56 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
   timeSeriesDF$Faktor = c(rep(c(1, 2, 3), length(years))) # 1 = total tetthet, 2 = tetthet av voksen fugl, 3 = kyllingproduksjon
   
   # For loop that runs through all the years and calculates the density estimates
-  estimat = c()
-  nedreCL = c()
-  ovreCL = c()
-  censusStart = 0
+  estimat = rep(NA, (length(years)*3))
+  nedreCL = rep(NA, (length(years)*3))
+  ovreCL = rep(NA, (length(years)*3))
+  #censusStart = 0
+  #gapYear = c()
   for(i in 1:length(years)){
 
-    #print(paste(i, "Start", sep = " "))
+    print(paste(i, "Start", sep = " "))
     d = timeSeries # Set the timeseries dataset equal to "d" so that the functions below work as intended
     d = d %>% filter(Year == years[i])
     
     # If monitoring had not started (num of rows in d == 0), increase "i" and redefine "d"
-    while(dim(d)[1] == 0){
-      i = i + 1
-      d = timeSeries %>% filter(Year == years[i])
-      censusStart = censusStart + 1
+    while(dim(d)[1] < 20 | length(unique(d$LinjeAvstand)) < 2){ #| dim(d)[1] == 0){
+      
+      
+      #if(dim(d)[1] == 0){
+      #  i = i + 1
+      #  d = timeSeries %>% filter(Year == years[i])
+       # censusStart = censusStart + 1 
+      #}
+      
+      if(i == 1){
+        estimat[i:(i*3)] = rep(100000, 3)
+        nedreCL[i:(i*3)] = rep(100000, 3)
+        ovreCL[i:(i*3)] = rep(100000, 3)
+      }
+      if(i != 1){
+        estimat[((i*2)+(i-2)):(i*3)] = rep(100000, 3)
+        nedreCL[((i*2)+(i-2)):(i*3)] = rep(100000, 3)
+        ovreCL[((i*2)+(i-2)):(i*3)] = rep(100000, 3)
+        }
+      
+      
+      #if(dim(d)[1] < 20){
+        #gapYear = append(gapYear, i)
+        i = i + 1
+        d = timeSeries %>% filter(Year == years[i])
+      #}
+      
+      if(i >= length(years)){
+        #gapYear = append(gapYear, i)
+        #censusStart = censusStart + 1
+        d = d[1, ]
+        d[1, ] = NA
+        break
+      } 
+    }
+    
+    if(dim(d)[1] == 1 & all(is.na(d))){
+      break
     }
     
     # Check Data_table - Number of obs and number of distance == 0
@@ -362,12 +412,23 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
       propDistZero = 0
     }
     
-    if(propDistZero > 0.40 | sumN < 20){ # If TRUE this years estimates have to be set as NA
+    if(propDistZero > 0.40 ){#| sumN < 20){ # If TRUE this years estimates have to be set as NA
+      #gapYear = append(gapYear, i)
+      if(i == 1){
+        estimat[i:(i*3)] = rep(100000, 3)
+        nedreCL[i:(i*3)] = rep(100000, 3)
+        ovreCL[i:(i*3)] = rep(100000, 3)
+      }
+      if(i != 1){
+        estimat[((i*2)+(i-2)):(i*3)] = rep(100000, 3)
+        nedreCL[((i*2)+(i-2)):(i*3)] = rep(100000, 3)
+        ovreCL[((i*2)+(i-2)):(i*3)] = rep(100000, 3)
+        }
       i = i + 1
-      #d = timeSeries %>% filter(Year == years[i])
-      estimat = append(estimat, rep(NA, 3))
-      nedreCL = append(nedreCL, rep(NA, 3))
-      ovreCL = append(ovreCL, rep(NA, 3))
+      d = timeSeries %>% filter(Year == years[i])
+      #estimat = append(estimat, rep(NA, 3))
+      #nedreCL = append(nedreCL, rep(NA, 3))
+      #ovreCL = append(ovreCL, rep(NA, 3))
     }
     
     else{
@@ -398,27 +459,51 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
         Rekrutt_all <- rec(strat="No")
     
     # Append the estimate and CI to the respective vectors
-    estimat = append(estimat, as.numeric(samle_res()$Estimat))
-    nedreCL = append(nedreCL, as.numeric(samle_res()$`Nedre CL`))
-    ovreCL = append(ovreCL, as.numeric(samle_res()$`Øvre CL`))
+    if(i == 1){
+      estimat[i:(i*3)] = as.numeric(samle_res()$Estimat)
+      nedreCL[i:(i*3)] = as.numeric(samle_res()$`Nedre CL`)
+      ovreCL[i:(i*3)] = as.numeric(samle_res()$`Øvre CL`)
     }
-    #print(paste(i, "End", sep = " "))
+    if(i != 1){
+      estimat[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$Estimat)
+      nedreCL[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$`Nedre CL`)
+      ovreCL[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$`Øvre CL`)
+      }
+    #estimat = append(estimat, as.numeric(samle_res()$Estimat))
+    #nedreCL = append(nedreCL, as.numeric(samle_res()$`Nedre CL`))
+    #ovreCL = append(ovreCL, as.numeric(samle_res()$`Øvre CL`))
+    }
+    if(i == length(years)){
+      break
+    }
+    print(paste(i, "End", sep = " "))
   }
   
   # If some of the first years are missing (monitoring had not started yet) the rows are set as NA
-  if(censusStart > 0){
-    for(i in 1:max(censusStart)){
-      estimat[seq(1:(censusStart*3))] = NA
-      nedreCL[seq(1:(censusStart*3))] = NA
-      ovreCL[seq(1:(censusStart*3))] = NA
-    }
-  }
+  #if(censusStart > 0){
+    #for(i in 1:max(censusStart)){
+   #   NAlist = rep(NA, length(seq(1:(censusStart*3))))
+    #  estimat = append(NAlist, estimat)
+     # nedreCL = append(NAlist, nedreCL)
+      #ovreCL = append(NAlist, ovreCL)
+      #estimat[seq(1:(censusStart*3))] = NA
+      #nedreCL[seq(1:(censusStart*3))] = NA
+      #ovreCL[seq(1:(censusStart*3))] = NA
+    #}
+  #}
 
 # Add the estimate and CI to the time series dataset
   timeSeriesDF$Estimat = estimat
   timeSeriesDF$`Nedre CL` = nedreCL
   timeSeriesDF$`Øvre CL` = ovreCL
-          
+  timeSeriesDF = timeSeriesDF %>% mutate(Estimat = ifelse(Estimat == 100000, NA, Estimat), `Nedre CL` = ifelse(`Nedre CL`==100000, NA, `Nedre CL`), `Øvre CL`=ifelse(`Øvre CL`==100000, NA, `Øvre CL`))
+  # if(!is.null(gapYear)){
+  #   #gapNA = rep(NA, 3*length(gapYear))
+  #   for(i in gapYear){
+  #    timeSeriesDF = timeSeriesDF %>% mutate(Estimat = ifelse(Year == years[i], NA, Estimat), `Nedre CL` = ifelse(Year == years[i], NA, `Nedre CL`), `Øvre CL` = ifelse(Year == years[i], NA, `Øvre CL`)) 
+  #   }
+  # }
+  
   # Subset data for the various categories (total, ad, chick and rodents)
   timeSeriesDF$Year = as.character.Date(timeSeriesDF$Year)
   timeSeriesTot = timeSeriesDF %>% filter(Faktor == 1)
@@ -460,6 +545,42 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
 ```  
   
 ```{r CREATE AND EXPORT PLOTS NINA EVENSTAD, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+  
+if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
+  
+  timeSeriesTot$Estimat = 0
+  timeSeriesAd$Estimat = 0
+  timeSeriesChick$Estimat = 0
+  #timeSeriesRodents$Estimat = 0
+  
+  tsTotPlot = ggplot(data = timeSeriesTot, aes(x=Year, y=Estimat, group = Faktor)) +
+    labs(title = ReportLevelOut, subtitle = bquote("a) Total tetthet - Antall fugl/"*km^2)) +
+    xlab("År") +
+    ylab(bquote(phantom(0)["Tetthet (95% KI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 40))
+  
+  tsAdPlot = ggplot(data = timeSeriesAd, aes(x=Year, y=Estimat, group = Faktor)) +
+    labs(title = ReportLevelOut, subtitle = bquote("a) Voksen tetthet - Antall fugl/"*km^2)) +
+    xlab("År") +
+    ylab(bquote(phantom(0)["Tetthet (95% KI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
+  
+  tsChickPlot = ggplot(data = timeSeriesChick, aes(x=Year, y=Estimat, group = Faktor)) +
+    labs(title = ReportLevelOut, subtitle = bquote("a) Kylling tetthet - Antall fugl/"*km^2)) +
+    xlab("År") +
+    ylab(bquote(phantom(0)["Tetthet (95% KI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
+  
+  tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + geom_point() +
+    geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
+    labs(title = ReportLevelOut, subtitle = bquote("d) Smågnager observasjoner")) +
+    xlab("År") +
+    ylab("Andel smågnager obs. (%)") +
+    theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesRodents$SeeRodPercent, na.rm = TRUE))))
+    #ggplot(data = timeSeriesRodents, aes(x=Year, y=Estimat, group = 1)) +
+    #labs(title = ReportLevelOut, subtitle = "Smågnager observasjoner") +
+    #xlab("År") +
+    #ylab("Ander smågnager obs. (%)") + theme(text = element_text(size = 8), axis.title.y = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 40))
+
+} else{
+
   # Total density plot
   tsTotPlot = ggplot(data = timeSeriesTot, aes(x=Year, y=Estimat, group = Faktor)) + geom_point() +
     geom_line(color="black", size=1, alpha=1, linetype=1) +
@@ -494,18 +615,23 @@ Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observas
     ylab("Andel smågnager obs. (%)") +
     theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesRodents$SeeRodPercent, na.rm = TRUE))))
 
+}
+
  # Collate the four figures into one
  ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
 
   # Save the plot with naming including area and last year of monitoring
+ if(ReportLevelOut == "Bjoreidalen - syd/nord"){
+   ReportLevelOut = "Bjoreidalen - SydNord"
+ }
   ggsave(filename = paste("C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/", ReportLevelOut, "-", max(years), ".jpg", sep = ""), width = 7, height = 7, units = "in")
-
+  
 ```
-
 **Figur 1**. Figuren viser a) estimert total tetthet (antall observasjoner / km^2^) for lirype, b) estimert voksen tetthet (antall voksne fugler observert / km^2^) for lirype, c) estimert kylling tetthet (antall kyllinger observert / km^2^) for lirype og til slutt d) andelen (%) av smågnagere observert for området (antall smågnagere observert / antall aktive linjer). Det blå feltet rundt trendlinjen i figur a), b) og c) representerer 95% konfidensintervallet til estimatet. 
 
 ```{r, echo=FALSE, eval = TRUE}
 
-Fig1(klasser=10)   
+Fig1(klasser=10)  
+
 ```
-**Figur 1**. Figuren til venstre viser oppdagbarheten fra takseringslinja og utover (totalt for området). Effektiv stripebredde (ESW) er den avstanden fra linja der det er gjort like mange observasjoner utenfor som anslått ikke funnet innenfor. Med trunkering menes her at de `r trunk` observasjoner som er lengst bort fra linja er fjernet (for å jevne ut oppdagbarhetskurven) - hvilken avstand dette gjelder er notert over. Figuren til høyre er en gjengivelse av oppdagbarhetskurven, med usikkerhetsmål angitt.
+**Figur 2**. Figuren til venstre viser oppdagbarheten fra takseringslinja og utover (totalt for området). Effektiv stripebredde (ESW) er den avstanden fra linja der det er gjort like mange observasjoner utenfor som anslått ikke funnet innenfor. Med trunkering menes her at de `r trunk` observasjoner som er lengst bort fra linja er fjernet (for å jevne ut oppdagbarhetskurven) - hvilken avstand dette gjelder er notert over. Figuren til høyre er en gjengivelse av oppdagbarhetskurven, med usikkerhetsmål angitt.
