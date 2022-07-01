@@ -1,6 +1,6 @@
 ---
 title: Resultater fra hønsefugltakseringene
-author: "NINA / HiNN"
+author: "NINA / HINN"
 date: 23\. august 2021
 header-includes:
 - \usepackage{fancyhdr}
@@ -80,17 +80,17 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
       df$Rapporteringsniva = ReportLevel
       
       # Report level variable that will be used for sub-setting data and plotting
-      ReportLevelOut = sample(unique(ReportLevel), size = 1, replace = FALSE) # DELETE AFTER TESTING
-      #ReportLevelOut = "Bjoreidalen - syd/nord" 
+      ReportLevelOut = "Helgeland 1" 
       AarInput = 2021
       
       d_1 <- df %>% filter(Rapporteringsniva==ReportLevelOut, Aar==AarInput)
       
-      j = 0
-      while(dim(d_1)[1] == 0){
-        j = j + 1
-        d_1 = df %>% filter(Rapporteringsniva == ReportLevelOut, Aar == AarInput - j)
-      }
+      # Step-wise back in time until there is (enough) data in the dataset
+      # j = 0
+      # while(dim(d_1)[1] == 0){
+      #   j = j + 1
+      #   d_1 = df %>% filter(Rapporteringsniva == ReportLevelOut, Aar == AarInput - j)
+      # }
       
       d_1 <- left_join(d_1, Obs, by = "TakseringID")
 
@@ -115,9 +115,9 @@ For å forenkle og standardisere analysene har vi valgt å analysere alle data m
 #       
 ### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERCAILLIE:
 ### when analysing "skogsfugl", apply this section. 
-      #Art1 <- "Skogsfugl"
-      #d <- transform(d, Artnavn==ifelse(Artnavn=="Storfugl", "Skogsfugl", 
-      #ifelse(Artnavn=="Orrfugl", "Skogsfugl", Artnavn)))
+      # Art1 <- "Skogsfugl"
+      # d <- transform(d, Artnavn = ifelse(Artnavn=="Storfugl", "Skogsfugl",
+      # ifelse(Artnavn=="Orrfugl", "Skogsfugl", ifelse(Artnavn == "Jerpe", "Skogsfugl", Artnavn))))
       
       message(ReportLevelOut) # USED FOR TESTING TO SEE WHICH AREA CREATES ERRORS
       
