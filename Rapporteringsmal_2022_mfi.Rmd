@@ -14,10 +14,19 @@ header-includes:
 - \fancyfoot[LE,RO]{\thepage}
 - \setlength\headheight{41.1pt}
 output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ## Innledning
-I denne rapporten presenteres resultatene fra årets hønsefugltakseringer. Takseringene gjennomføres hovedsakelig i perioden 5. – 25. august hvert år, og legger grunnlaget for å beregne tetthet av hønsefugl. På grunn av korte tidsfrister tar NINA og HINN utgangspunkt i at takseringsansvarlige har kvalitetssikret dataene, jf. forutsetningene skissert nedenfor.
+
+I denne rapporten presenteres resultatene fra årets
+hønsefugltakseringer. Takseringene gjennomføres hovedsakelig i perioden
+5. -- 25. august hvert år, og legger grunnlaget for å beregne tetthet av
+hønsefugl. På grunn av korte tidsfrister tar NINA og HINN utgangspunkt i
+at takseringsansvarlige har kvalitetssikret dataene, jf. forutsetningene
+skissert nedenfor.
 
 ```{r Set Report level NINA & HINN, eval = TRUE, echo = FALSE, message = FALSE}
 ### HINN - Set all code chunks that only have "NINA" in the title to "eval = FALSE" before knitting ###
@@ -35,20 +44,34 @@ hinnImportDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglRepor
 ```
 
 ## Forutsetninger for gode estimater
-Tallene som presenteres i resultatene nedenfor er beregninger gjort ut fra observasjonene av fugl i `r ReportLevelOut`. For at estimatene skal bli presise er det viktig at kvaliteten på linjedesign og taksering er så god som mulig. 
-\ \newline
-\ \newline
-Det er område- og regionansvarlige som må sørge for at kvaliteten på linjedesignet er optimalt i forkant av takseringene. Dette innebærer blant annet minimum 70 km linjelengde for området for å sikre nok observasjoner av fugl (minimum 40 observasjoner for å gi gode estimater), med minimum 500 meter mellom hver linje for å unngå at fugl forflytter seg mellom linjer under taksering og dermed telles flere ganger. Videre bør linjene være representative for forvaltningsområdet, dvs. at hver takseringslinje i størst mulig grad dekker alle terrengtyper og habitat. Hvis ikke, kan tettheten fort under- eller overestimeres.
-\ \newline
-\ \newline
-Takseringen i felt bør gjennomføres etter visse retningslinjer for å sikre god kvalitet på dataene som samles inn. Alle linjene i takseringsområdet bør takseres innenfor samme tidsperiode. Taksørene bør ha gjennomført et godkjent takseringskurs før taksering, og også sørge for at hunden som benyttes er godt trent og egnet til taksering. Under takseringen bør mobil-appen benyttes for å sikre at alle nødvendige data registreres og at avstander måles korrekt. 
-\ \newline
-\ \newline
-Metoden vi benytter til å beregne tetthet av fugl – Distance sampling – forutsetter at hver takseringslinje gås så rett som mulig, og at all fugl som befinner seg direkte på linja blir observert. Sammen med de øvrige forutsetningene skissert over vil dette bidra til høy kvalitet på data og analyser, og dermed sikrere tetthetsestimater.
-\ \newline
-\ \newline
-Ytterligere informasjon om Hønsefuglportalen, taksering og metodikk finnes på http://honsefugl.nina.no.
-\pagebreak
+
+Tallene som presenteres i resultatene nedenfor er beregninger gjort ut
+fra observasjonene av fugl i `r ReportLevelOut`. For at estimatene skal
+bli presise er det viktig at kvaliteten på linjedesign og taksering er
+så god som mulig.  \newline  \newline Det er område- og regionansvarlige
+som må sørge for at kvaliteten på linjedesignet er optimalt i forkant av
+takseringene. Dette innebærer blant annet minimum 70 km linjelengde for
+området for å sikre nok observasjoner av fugl (minimum 40 observasjoner
+for å gi gode estimater), med minimum 500 meter mellom hver linje for å
+unngå at fugl forflytter seg mellom linjer under taksering og dermed
+telles flere ganger. Videre bør linjene være representative for
+forvaltningsområdet, dvs. at hver takseringslinje i størst mulig grad
+dekker alle terrengtyper og habitat. Hvis ikke, kan tettheten fort
+under- eller overestimeres.  \newline  \newline Takseringen i felt bør
+gjennomføres etter visse retningslinjer for å sikre god kvalitet på
+dataene som samles inn. Alle linjene i takseringsområdet bør takseres
+innenfor samme tidsperiode. Taksørene bør ha gjennomført et godkjent
+takseringskurs før taksering, og også sørge for at hunden som benyttes
+er godt trent og egnet til taksering. Under takseringen bør mobil-appen
+benyttes for å sikre at alle nødvendige data registreres og at avstander
+måles korrekt.  \newline  \newline Metoden vi benytter til å beregne
+tetthet av fugl -- Distance sampling -- forutsetter at hver
+takseringslinje gås så rett som mulig, og at all fugl som befinner seg
+direkte på linja blir observert. Sammen med de øvrige forutsetningene
+skissert over vil dette bidra til høy kvalitet på data og analyser, og
+dermed sikrere tetthetsestimater.  \newline  \newline Ytterligere
+informasjon om Hønsefuglportalen, taksering og metodikk finnes på
+<http://honsefugl.nina.no>. \pagebreak
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -191,7 +214,7 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
       ReportLevel = gsub("Ã¦", "æ", x = ReportLevel)
       df$Rapporteringsniva = ReportLevel
       
-      d_1 = df %>% filter(Navn==ReportLevelOut, Aar==2021)
+      d_1 = df %>% filter(Navn==ReportLevelOut, Aar==YearInput)
       
       d_1 = d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar)
       d = d_1 #%>% filter(Rapporteringsniva!="Pasvik")
@@ -225,7 +248,7 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
 
 #### 7. DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
 
-    strat <- "No"   # "År", "OmradeNavn", eller "No"
+    strat <- "OmradeNavn"   # "År", "OmradeNavn", eller "No"
 
 ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
 
@@ -253,15 +276,20 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
             formula= ~1, key="hn")
 
     ### 14A: ESTIMATING BROOD SIZE POOLED
-      Rekrutt_all <- rec(strat="No")
+      Rekrutt_all <- rec(strat="OmradeNavn")
      
 ```
 
 ## Resultater
-I **tabell 1** vises en oversikt over områdene som er taksert for `r ReportLevelOut` i `r YearInput`. Tallene baserer seg på de linjene som faktisk er taksert, og ikke nødvendigvis alle tilgjengelige linjer i et gitt område.
-\ \newline
 
-**Tabell 1**. Deskriptiv statistikk for `r paste(d$Navn[1])` i `r paste(d$Year[1])`.  
+I **tabell 1** vises en oversikt over områdene som er taksert for
+`r ReportLevelOut` i `r YearInput`. Tallene baserer seg på de linjene
+som faktisk er taksert, og ikke nødvendigvis alle tilgjengelige linjer i
+et gitt område.  \newline
+
+**Tabell 1**. Deskriptiv statistikk for `r paste(d$Navn[1])` i
+`r paste(d$Year[1])`.
+
 ```{r 4 - NINA & HINN, echo=FALSE, results='asis'}
 
      strat <- "OmradeNavn"   # "År", "OmradeNavn", eller "No"
@@ -291,25 +319,53 @@ otherSpecies = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn != "Liry
 
 ```
 
-Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs` observasjoner, som over). `r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""), 
-             ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""), 
-                    ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""), 
-                           ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""), 
-                                  ifelse(noOfSpecies == 1, "Øvrige arter ble ikke observert."))))))`
+Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs`
+observasjoner, som over).
+`r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""),               ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""),                      ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""),                             ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""),                                    ifelse(noOfSpecies == 1, "Øvrige arter ble ikke observert."))))))`
 
-\ \newline
-I **tabell 2** fremkommer tetthetsestimatene og estimat av kyllingproduksjonen for `r ReportLevelOut` i `r YearInput`. Merk at estimatene må sees i sammenheng med usikkerhetsnivåene, som er definert med nedre og øvre CL (konfidensintervall). Den «sanne» tettheten ligger et sted mellom nedre og øvre CL, noe som bør tas i betraktning i forvaltningssammenheng. CV, eller variasjonskoeffisienten, sier noe om spredningen i variasjonen rundt estimatet, og går fra en skala fra 0 til 1. Lavere CV tilsvarer mindre spredning, og dermed et sikrere estimat.
-\ \newline
+ \newline I **tabell 2** fremkommer tetthetsestimatene og estimat av
+kyllingproduksjonen for `r ReportLevelOut` i `r YearInput`. Merk at
+estimatene må sees i sammenheng med usikkerhetsnivåene, som er definert
+med nedre og øvre CL (konfidensintervall). Den «sanne» tettheten ligger
+et sted mellom nedre og øvre CL, noe som bør tas i betraktning i
+forvaltningssammenheng. CV, eller variasjonskoeffisienten, sier noe om
+spredningen i variasjonen rundt estimatet, og går fra en skala fra 0
+til 1. Lavere CV tilsvarer mindre spredning, og dermed et sikrere
+estimat.  \newline
 
-**Tabell 2**. Resultater for `r paste(Art2)` i `r paste(d$Navn[1])` i `r paste(d$Year[1])`. Kyllingproduksjon rapporteres som antall kyllinger per par (per høne for skogsfugl). Nedre CL og Øvre CL representerer henholdsvis øvre og nedre konfidensintervall (med 95% sikkerhet), og CV representerer variasjonskoeffisienten (spredningen i resultatene).
+**Tabell 2**. Resultater for `r paste(Art2)` i `r paste(d$Navn[1])` i
+`r paste(d$Year[1])`. Kyllingproduksjon rapporteres som antall kyllinger
+per par (per høne for skogsfugl). Nedre CL og Øvre CL representerer
+henholdsvis øvre og nedre konfidensintervall (med 95% sikkerhet), og CV
+representerer variasjonskoeffisienten (spredningen i resultatene).
+
 ```{r 6 - NINA & HINN, echo=FALSE, results='asis'}
 
-     panderOptions("table.split.table", 120)
-     panderOptions("table.alignment.default", "left")
-     pander(samle_res())
+if(strat == "OmradeNavn"){
+  panderOptions("table.split.table", 120)
+  panderOptions("table.alignment.default", "left")
+  Rekrutt_strat = Rekrutt_all
+  areaName = omr_res()
+  unqAreaName = unique(areaName$Områdenavn)[which(!is.na(unique(areaName$Områdenavn)))]
+  areaName$Områdenavn = sort(rep(unqAreaName, 4))
+  for(i in 1:dim(areaName)[1]){
+    if(any(is.na(areaName[i, ]))){
+      areaName[i, ][which(is.na(areaName[i, ]))] = "-"
+      areaName$Områdenavn[i] = "-"
+    }
+    
+  }
+  pander(areaName)
+  #pander(omr_res(strat = strat))
+} else{
+  panderOptions("table.split.table", 120)
+  panderOptions("table.alignment.default", "left")
+  pander(samle_res())  
+}
       
 ```
-\pagebreak 
+
+\pagebreak
 
 ```{r 7 - NINA & HINN, echo = FALSE, message = FALSE}
 
@@ -349,7 +405,7 @@ I **tabell 2** fremkommer tetthetsestimatene og estimat av kyllingproduksjonen f
   timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
   
   # Define if there are any strata in your data
-  strat <- "No"   # "Year", "OmradeNavn", eller "No"
+  strat <- "OmradeNavn"   # "Year", "OmradeNavn", eller "No"
   
   # Create an empty data frame to hold the estimates
   years = c(2013:max(unique(d$Year)))
@@ -494,7 +550,7 @@ I **tabell 2** fremkommer tetthetsestimatene og estimat av kyllingproduksjonen f
   
 ```
 
-```{r RODENTS TIMESERIES HINN, eval = FALSE, echo = FALSE}  
+```{r RODENTS TIMESERIES HINN, eval = FALSE, echo = FALSE}
 
   # Calculate the number of rodents observed
   timeSeries$Year = as.character.Date(timeSeries$Year)
@@ -504,11 +560,12 @@ I **tabell 2** fremkommer tetthetsestimatene og estimat av kyllingproduksjonen f
   timeSeriesRodents = timeSeriesRodents %>% mutate(Year = Aar)
   timeSeriesRodents$Year = as.character.Date(timeSeriesRodents$Year)
   
-```  
+```
 
-Hvordan årets estimater står i forhold til tidligere års estimater sees av **figur 1**. Her vises også en indeks på smågnagerforekomst i samme område, beregnet som antall linjer med sett smågnagere delt på totalt antall takserte linjer per år.
-\ \newline
-\ \newline 
+Hvordan årets estimater står i forhold til tidligere års estimater sees
+av **figur 1**. Her vises også en indeks på smågnagerforekomst i samme
+område, beregnet som antall linjer med sett smågnagere delt på totalt
+antall takserte linjer per år.  \newline  \newline
 
 ```{r CREATE AND EXPORT PLOTS NINA HINN, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -568,7 +625,7 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
  # Adult density plot
  tsAdPlot = ggplot(data = timeSeriesAd, aes(x = Year, y = Estimat, group = Faktor)) + geom_point() +
    geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-   labs(title = ReportLevelOut, subtitle = bquote("b) Voksen tetthet - Antall fugl/"*km^2)) +
+   labs(title = ReportLevelOut, subtitle = bquote("b) Voksentetthet - Antall fugl/"*km^2)) +
    xlab("År") +
    ylab(bquote(phantom(0)["Tetthet (95% KI)"])) +
    geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") +
@@ -577,7 +634,7 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
  # Chick density plot
  tsChickPlot = ggplot(data = timeSeriesChick, aes(x = Year, y = Estimat, group = Faktor)) + geom_point() +
      geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-     labs(title = ReportLevelOut, subtitle = bquote("c) Kylling tetthet - Antall fugl/"*km^2)) +
+     labs(title = ReportLevelOut, subtitle = bquote("c) Kyllingtetthet - Antall fugl/"*km^2)) +
      xlab("År") +
      ylab(bquote(phantom(0)["Tetthet (95% KI)"])) +
      geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") +
@@ -586,10 +643,10 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
  # Proportion of rodents observered plot
   tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + geom_point() +
     geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-    labs(title = ReportLevelOut, subtitle = bquote("d) Smågnager observasjoner")) +
+    labs(title = ReportLevelOut, subtitle = bquote("d) Smågnagerobservasjoner")) +
     xlab("År") +
     ylab("Andel smågnager obs. (%)") +
-    theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesRodents$SeeRodPercent, na.rm = TRUE))))
+    theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 100))
 
 }
 
@@ -606,16 +663,39 @@ if(gsub("/", "", ReportLevelOut) != ReportLevelOut){
 ggsave(filename = paste(figExpDir, ReportLevelOut, "-", max(years), ".jpg", sep = ""), width = 7, height = 7, units = "in")
   
 ```
-**Figur 1**. Figuren viser a) estimert total tetthet (antall observasjoner / km^2^) for lirype, b) estimert voksen tetthet (antall voksne fugler observert / km^2^) for lirype, c) estimert kylling tetthet (antall kyllinger observert / km^2^) for lirype og til slutt d) antall linjer med sett smågnagere / antall takserte linjer. Det blå feltet rundt trendlinjen i figur a), b) og c) representerer 95% konfidensintervallet til estimatet.
-\pagebreak
+
+**Figur 1**. Figuren viser a) estimert total tetthet (antall
+observasjoner / km^2^) for lirype, b) estimert voksen tetthet (antall
+voksne fugler observert / km^2^) for lirype, c) estimert kylling tetthet
+(antall kyllinger observert / km^2^) for lirype og til slutt d) antall
+linjer med sett smågnagere / antall takserte linjer. Det blå feltet
+rundt trendlinjen i figur a), b) og c) representerer 95%
+konfidensintervallet til estimatet. \pagebreak
 
 ## Oppdagbarhet
-Kvaliteten på takseringene gjenspeiles i oppdagbarhetskurven, som er et mål på hvor godt observasjonene av fugl passer til Distance sampling-modellen. En oppdagbarhetskurve som avtar fra 1.0 og flater ut mot 0.0 (en sigmoid kurve) tilsier at observasjonene av fugl passer metoden og modellene veldig godt, noe som vil gi lavere usikkerhetsnivå (dvs. en nedre og øvre CL som ligger nærmere estimatet). Merk at vi har valgt å standardisere analysene ved å bruke en såkalt «Half Normal» oppdagbarhets-funksjon. Dette gjør at det blir enklere å sammenlikne data mellom områder med lite og mye data. Oppdagbarhetskurven for `r ReportLevelOut` i `r YearInput` sees av **figur 2**.
-\ \newline
+
+Kvaliteten på takseringene gjenspeiles i oppdagbarhetskurven, som er et
+mål på hvor godt observasjonene av fugl passer til Distance
+sampling-modellen. En oppdagbarhetskurve som avtar fra 1.0 og flater ut
+mot 0.0 (en sigmoid kurve) tilsier at observasjonene av fugl passer
+metoden og modellene veldig godt, noe som vil gi lavere usikkerhetsnivå
+(dvs. en nedre og øvre CL som ligger nærmere estimatet). Merk at vi har
+valgt å standardisere analysene ved å bruke en såkalt «Half Normal»
+oppdagbarhets-funksjon. Dette gjør at det blir enklere å sammenlikne
+data mellom områder med lite og mye data. Oppdagbarhetskurven for
+`r ReportLevelOut` i `r YearInput` sees av **figur 2**.  \newline
 
 ```{r, echo=FALSE, eval = TRUE}
 
 Fig1(klasser=10)  
 
 ```
-**Figur 2**. Figuren til venstre viser oppdagbarheten fra takseringslinja og utover (totalt for området). Effektiv stripebredde (ESW) er den avstanden fra linja der det er gjort like mange observasjoner utenfor som anslått ikke funnet innenfor. Med trunkering menes her at de `r trunk` observasjoner som er lengst bort fra linja er fjernet (for å jevne ut oppdagbarhetskurven) - hvilken avstand dette gjelder er notert over. Figuren til høyre er en gjengivelse av oppdagbarhetskurven, med usikkerhetsmål angitt.
+
+**Figur 2**. Figuren til venstre viser oppdagbarheten fra
+takseringslinja og utover (totalt for området). Effektiv stripebredde
+(ESW) er den avstanden fra linja der det er gjort like mange
+observasjoner utenfor som anslått ikke funnet innenfor. Med trunkering
+menes her at de `r trunk` observasjoner som er lengst bort fra linja er
+fjernet (for å jevne ut oppdagbarhetskurven) - hvilken avstand dette
+gjelder er notert over. Figuren til høyre er en gjengivelse av
+oppdagbarhetskurven, med usikkerhetsmål angitt.
