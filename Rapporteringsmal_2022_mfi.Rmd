@@ -1,7 +1,7 @@
 ---
 title: Resultater fra hønsefugltakseringene
 author: "NINA / HINN"
-date: 23\. august 2021
+date: 23\. august 2022
 header-includes:
 - \usepackage{fancyhdr}
 - \pagestyle{fancy}
@@ -10,7 +10,7 @@ header-includes:
 - \makeatother
 - \fancyhf{}
 - \fancyhead[CO,CE]{\includegraphics{logosmall.png}}
-- \fancyfoot[CO,CE]{Hønsefuglportalen 2021}
+- \fancyfoot[CO,CE]{Hønsefuglportalen 2022}
 - \fancyfoot[LE,RO]{\thepage}
 - \setlength\headheight{41.1pt}
 output: pdf_document
