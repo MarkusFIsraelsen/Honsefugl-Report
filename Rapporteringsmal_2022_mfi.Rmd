@@ -339,7 +339,7 @@ per par (per høne for skogsfugl). Nedre CI og Øvre CI representerer
 henholdsvis øvre og nedre konfidensintervall (med 95% sikkerhet), og CV
 representerer variasjonskoeffisienten (spredningen i resultatene).
 
-```{r 6 - NINA & HINN, echo=FALSE, results='asis'}
+```{r 6 - NINA & HINN, echo=FALSE, results='asis', message = FALSE}
 
 # Either print table 2 based on Omradenavn stratification or no stratification at all
 
@@ -350,14 +350,36 @@ if(strat == "OmradeNavn"){
   areaName = omr_res()
   unqAreaName = unique(areaName$Områdenavn)[which(!is.na(unique(areaName$Områdenavn)))]
   areaName$Områdenavn = sort(rep(unqAreaName, 4))
+  colnames(areaName) = c("Område", "", "Estimat", "Nedre CI", "Øvre CI", "CV")
+  
+  # Add total for the region at the first line
+  Data_table <- dat_tab(strat = "No")
+  Data_table_ad <- dat_tab_ad(strat = "No")
+  Obs_table <- obs_tab(strat = "No")
+  Sample_table <- samp_tab(strat = "No")
+  Region_table <- reg_tab(strat = "No")
+  trunk <- "11%"
+  ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
+  ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, obs_table=Obs_table, adjustment=NULL, transect="line", truncation=trunk, formula= ~1, key="hn")
+  
+  ### 13: ESTIMATING ADULT DENSITY
+  ds.model2 <- ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, obs_table=Obs_table, adjustment=NULL, transect="line", truncation=trunk, formula= ~1, key="hn")
+
+  ### 14A: ESTIMATING BROOD SIZE POOLED
+  Rekrutt_all <- rec(strat = "No")
+  firstLine = samle_res()
+  firstLine = cbind(c(rep(ReportLevelOut, 3)), firstLine)
+  colnames(firstLine) = c("Område", "", "Estimat", "Nedre CI", "Øvre CI", "CV")
+  
+  areaName = rbind(firstLine, areaName)
+  
   for(i in 1:dim(areaName)[1]){
     if(any(is.na(areaName[i, ]))){
       areaName[i, ][which(is.na(areaName[i, ]))] = "" # Change all "NA" to empty space
-      areaName$Områdenavn[i] = "~" # Change the first element of each row to "~" to create space between each area in the table
+      areaName$Område[i] = "~" # Change the first element of each row to "~" to create space between each area in the table
     }
   }
-  colnames(areaName) = c("Område", "", "Estimat", "Nedre CI", "Øvre CI", "CV")
-  areaName = areaName[-1, ]
+
   pander(areaName, row.names = FALSE)
   
 } else{
