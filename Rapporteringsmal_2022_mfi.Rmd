@@ -1,7 +1,9 @@
 ---
-title: Resultater fra hønsefugltakseringene
+title: |
+  | Resultater fra hønsefugltakseringene
+  | <sett inn rapp.nivå>
 author: "NINA / HINN"
-date: 23\. august 2022
+date: 18\. august 2022
 header-includes:
 - \usepackage{fancyhdr}
 - \pagestyle{fancy}
@@ -33,10 +35,10 @@ skissert nedenfor.
 
 # Report level and Year variable that will be used for sub-setting data and plotting
 ReportLevelOut = "Helgeland 1"
-YearInput = 2021
+YearInput = 2022
 
 # Set the figure export directory
-figExpDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/"
+#figExpDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/" #NB! Ikke nødvendig å eksportere figurene, så jeg har kommentert denne ut inntil videre
 
 ### HINN - Set the directory for the dataset ###
 hinnImportDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/XML/Rapport_2_21_0_0_Helgeland_1_2013-2021.xml"
@@ -147,15 +149,10 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
       d_1 <- d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
       d <- d_1 #%>% filter(Rapporteringsniva!="Pasvik")
 
-### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
-###     
-      Art1 <- "Lirype"
-      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
-      
 # ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
 # ###     
-#       Art1 <- "Lirype"
-#       Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
+      Art1 <- "Lirype"
+      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
 #       
 ### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERCAILLIE:
 ### when analysing "skogsfugl", apply this section. 
@@ -168,7 +165,7 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
 ```{r DATA IMPORT HINN, eval = FALSE, echo = FALSE, message = FALSE}
 
 # Function to read XML files into R
-readExcelXML <- function(filename, sheet) {
+      readExcelXML <- function(filename, sheet) {
         require(xml2)
         doc <- read_xml(filename)
         ns <- xml_ns(doc)
@@ -194,16 +191,16 @@ readExcelXML <- function(filename, sheet) {
         dat
       }
 
-df = readExcelXML(hinnImportDir, "Sheet1") 
-df = df %>% mutate(Aar = year(dmy(substr(paste(df$Dato), start = 1, stop = 10)))) # Add year to all observations
-df = df %>% mutate(FK_ArtId = ifelse(Artnavn == "Lirype", 1, 
-                                     ifelse(Artnavn == "Fjellrype", 2, 
-                                            ifelse(Artnavn == "Storfugl", 3, 
-                                                   ifelse(Artnavn == "Orrfugl", 4, 
-                                                          ifelse(Artnavn == "Jerpe", 5, Artnavn))))))
-df = df %>% mutate(Rapporteringsniva = Navn)
-df = df %>% mutate(SettSmagnager = ifelse(SettSmagnager == "True", 1, ifelse(SettSmagnager == "False", 0, SettSmagnager))) 
-df$SettSmagnager = as.integer(df$SettSmagnager)
+      df = readExcelXML(hinnImportDir, "Sheet1") 
+      df = df %>% mutate(Aar = year(dmy(substr(paste(df$Dato), start = 1, stop = 10)))) # Add year to all observations
+      df = df %>% mutate(FK_ArtId = ifelse(Artnavn == "Lirype", 1, 
+                                           ifelse(Artnavn == "Fjellrype", 2, 
+                                                  ifelse(Artnavn == "Storfugl", 3, 
+                                                         ifelse(Artnavn == "Orrfugl", 4, 
+                                                                ifelse(Artnavn == "Jerpe", 5, Artnavn))))))
+      df = df %>% mutate(Rapporteringsniva = Navn)
+      df = df %>% mutate(SettSmagnager = ifelse(SettSmagnager == "True", 1, ifelse(SettSmagnager == "False", 0, SettSmagnager))) 
+      df$SettSmagnager = as.integer(df$SettSmagnager)
 
 # Fix problems with æ, ø and å letters (if present)
       ReportLevel = df$Rapporteringsniva
@@ -219,10 +216,10 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
       d_1 = d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar)
       d = d_1 #%>% filter(Rapporteringsniva!="Pasvik")
 
-### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
-###     
-      Art1 <- "Lirype"
-      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
+# ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS; #NB! Er definert over
+# ###     
+#       Art1 <- "Lirype"
+#       Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
 
 ```
 
@@ -238,9 +235,8 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
 # ### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
 
       d <- transform(d, ad_t=AntallHann+AntallHunn)
-      #d <- transform(d, cs=ad_t+AntallUkjent+AntallKylling)
-      d <- transform(d, ad=ifelse(cs<1.99, ad_t, 2))
-      d <- transform(d, juv=ifelse(cs<1.99, 0, cs-ad))
+      d <- transform(d, ad=ifelse(Artnavn==Art1, ifelse(cs < 1.99, ad_t, 2), NA)) #dobbeltsjekk for at alle irrelevante observasjoner settes til NA
+      d <- transform(d, juv=ifelse(Artnavn==Art1, ifelse(cs < 1.99, 0, cs - ad), NA)) #dobbeltsjekk for at alle irrelevante observasjoner settes til NA
 
 ```
 
@@ -262,7 +258,7 @@ df$SettSmagnager = as.integer(df$SettSmagnager)
 
 ```{r 3 - NINA & HINN, echo=FALSE, message=FALSE}
     
-    trunk <- "11%"
+    trunk <- "10%"
     ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
      ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, 
             obs_table=Obs_table, 
@@ -352,18 +348,19 @@ if(strat == "OmradeNavn"){
   areaName$Områdenavn = sort(rep(unqAreaName, 4))
   colnames(areaName) = c("Område", "", "Estimat", "Nedre CI", "Øvre CI", "CV")
   
-  # Add total for the region at the first line
-  Data_table <- dat_tab(strat = "No")
-  Data_table_ad <- dat_tab_ad(strat = "No")
-  Obs_table <- obs_tab(strat = "No")
-  Sample_table <- samp_tab(strat = "No")
-  Region_table <- reg_tab(strat = "No")
-  trunk <- "11%"
-  ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
-  ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, obs_table=Obs_table, adjustment=NULL, transect="line", truncation=trunk, formula= ~1, key="hn")
-  
-  ### 13: ESTIMATING ADULT DENSITY
-  ds.model2 <- ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, obs_table=Obs_table, adjustment=NULL, transect="line", truncation=trunk, formula= ~1, key="hn")
+  #LRE: Har kommentert ut denne delen, slik at vi ved stratifisering bruker gj.snittlig totaltetthet fremfor å beregne ny ustratifisert tetthet
+  # # Add total for the region at the first line
+  # Data_table <- dat_tab(strat = "No")
+  # Data_table_ad <- dat_tab_ad(strat = "No")
+  # Obs_table <- obs_tab(strat = "No")
+  # Sample_table <- samp_tab(strat = "No")
+  # Region_table <- reg_tab(strat = "No")
+  # trunk <- "10%"
+  # ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
+  # ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, obs_table=Obs_table, adjustment=NULL, transect="line", truncation=trunk, formula= ~1, key="hn")
+  # 
+  # ### 13: ESTIMATING ADULT DENSITY
+  # ds.model2 <- ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, obs_table=Obs_table, adjustment=NULL, transect="line", truncation=trunk, formula= ~1, key="hn")
 
   ### 14A: ESTIMATING BROOD SIZE POOLED
   Rekrutt_all <- rec(strat = "No")
@@ -429,8 +426,9 @@ if(strat == "OmradeNavn"){
   timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
   timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
   
-  # Define if there are any strata in your data
-  strat <- "No"   # "Year", "OmradeNavn", eller "No"
+  #LRE: Har kommentert ut redefinering av strata, slik at det benyttes samme stratifisering (og dermed totaltetthet) som i hovedanalysen
+  # # Define if there are any strata in your data
+  # strat <- "No"   # "Year", "OmradeNavn", eller "No"
   
   # Create an empty data frame to hold the estimates
   years = c(2013:max(unique(d$Year)))
@@ -516,7 +514,7 @@ if(strat == "OmradeNavn"){
       Sample_table <- samp_tab(strat)
       Region_table <- reg_tab(strat)
       
-      trunk <- "11%"
+      trunk <- "10%"
       ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
           ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, 
                 obs_table=Obs_table, 
@@ -619,23 +617,23 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
   
   # Adult density plot
   tsAdPlot = ggplot(data = timeSeriesAd, aes(x=Year, y=Estimat, group = Faktor)) +
-    labs(title = ReportLevelOut, subtitle = bquote("a) Voksen tetthet - Antall fugl/"*km^2)) +
+    labs(title = ReportLevelOut, subtitle = bquote("a) Voksentetthet - Antall fugl/"*km^2)) +
     xlab("År") +
     ylab(bquote(phantom(0)["Tetthet (95% CI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
   
   # Chick density plot
   tsChickPlot = ggplot(data = timeSeriesChick, aes(x=Year, y=Estimat, group = Faktor)) +
-    labs(title = ReportLevelOut, subtitle = bquote("a) Kylling tetthet - Antall fugl/"*km^2)) +
+    labs(title = ReportLevelOut, subtitle = bquote("a) Kyllingtetthet - Antall fugl/"*km^2)) +
     xlab("År") +
     ylab(bquote(phantom(0)["Tetthet (95% CI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
   
   # Proportion of rodents observed plot 
   tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + geom_point() +
     geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-    labs(title = ReportLevelOut, subtitle = bquote("d) Smågnager observasjoner")) +
+    labs(title = ReportLevelOut, subtitle = bquote("d) Smågnagerobservasjoner")) +
     xlab("År") +
-    ylab("Andel smågnager obs. (%)") +
-    theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesRodents$SeeRodPercent, na.rm = TRUE))))
+    ylab("Andel smågnagerobs. (%)") +
+    theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 100))
 
 } else{
 
@@ -670,7 +668,7 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
     geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
     labs(title = ReportLevelOut, subtitle = bquote("d) Smågnagerobservasjoner")) +
     xlab("År") +
-    ylab("Andel smågnager obs. (%)") +
+    ylab("Andel smågnagerobs. (%)") +
     theme(text = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 100))
 
 }
@@ -678,15 +676,16 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
 # Collate the four figures into one
 ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
 
+#LRE: Har kommentert ut denne, siden det ikke er nødvendig å eksportere tidsserie-figurene ved normal rapportering
 # Check if the "ReportLevelOut" variable name contains any forward slashes (will mess up plot export if it does) and remove forward slash if present 
-if(gsub("/", "", ReportLevelOut) != ReportLevelOut){
-  print("Not equal")
-   ReportLevelOut = gsub("/", "", ReportLevelOut)
- }
+# if(gsub("/", "", ReportLevelOut) != ReportLevelOut){
+#   print("Not equal")
+#    ReportLevelOut = gsub("/", "", ReportLevelOut)
+#  }
+# 
+# # Save the plot - Filename with area and last year of monitoring
+# ggsave(filename = paste(figExpDir, ReportLevelOut, "-", max(years), ".jpg", sep = ""), width = 7, height = 7, units = "in")
 
-# Save the plot - Filename with area and last year of monitoring
-ggsave(filename = paste(figExpDir, ReportLevelOut, "-", max(years), ".jpg", sep = ""), width = 7, height = 7, units = "in")
-  
 ```
 
 **Figur 1**. Figuren viser a) estimert total tetthet (antall
