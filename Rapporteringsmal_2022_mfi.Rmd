@@ -31,7 +31,8 @@ at takseringsansvarlige har kvalitetssikret dataene, jf. forutsetningene
 skissert nedenfor.
 
 ```{r Set Report level NINA & HINN, eval = TRUE, echo = FALSE, message = FALSE}
-### HINN - Set all code chunks that only have "NINA" in the title to "eval = FALSE" before knitting ###
+### Set all code chunks to run for either HINN (TRUE) or NINA (FALSE) before knitting ###
+HINN = TRUE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
 
 # Report level and Year variable that will be used for sub-setting data and plotting
 ReportLevelOut = "Helgeland 1"
@@ -78,7 +79,7 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 
 ### 1. DEFINE WORK SPACE:
-      #setwd("~/12169400 - Hønsefuglportalen 2 (EBN)/ANALYSER OG TAKSERING/TAKSERINGSANALYSER/Analyser 2021/Statskog/Helgeland 1")
+
       library(Distance)
       library(knitr)
       library(HFP)
@@ -92,7 +93,7 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
 
 ```
 
-```{r DATA IMPORT NINA, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+```{r DATA IMPORT NINA, eval = isFALSE(HINN), echo=FALSE, message=FALSE, warning=FALSE}
 
 ### 2. LOAD AND FORMAT DATA SET
 
@@ -162,7 +163,7 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
       
 ```
 
-```{r DATA IMPORT HINN, eval = FALSE, echo = FALSE, message = FALSE}
+```{r DATA IMPORT HINN, eval = isTRUE(HINN), echo = FALSE, message = FALSE}
 
 # Function to read XML files into R
       readExcelXML <- function(filename, sheet) {
@@ -382,7 +383,9 @@ if(strat == "OmradeNavn"){
 } else{
   panderOptions("table.split.table", 120)
   panderOptions("table.alignment.default", "left")
-  pander(samle_res())  
+  totres <- as.data.frame(samle_res()) #LRE: lagt til slik at det blir lik utforming på tabeller med og uten stratifisering
+  colnames(totres) <- c("","Estimat","Nedre CI","Øvre CI","CV")
+  pander(totres)
 }
       
 ```
@@ -396,7 +399,7 @@ if(strat == "OmradeNavn"){
 
 ```
 
-```{r NINA, eval = TRUE, echo = FALSE, message = FALSE}
+```{r NINA, eval = isFALSE(HINN), echo = FALSE, message = FALSE}
   
 # Some final data management for NINA dataset
   timeSeries = left_join(timeSeries, Obs, by = "TakseringID")
@@ -514,17 +517,18 @@ if(strat == "OmradeNavn"){
       Sample_table <- samp_tab(strat)
       Region_table <- reg_tab(strat)
       
-      trunk <- "10%"
+      timetrunk <- "10%" #LRE: endret variabelnavn fra 'trunk' til 'timetrunk'
+      # slik at at variabelen ikke overskrives i figurteksten til figur 3
       ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
           ds.model1 <- ds(Data_table, region_table=Region_table, sample_table=Sample_table, 
                 obs_table=Obs_table, 
-                adjustment=NULL, transect="line", truncation=trunk, 
+                adjustment=NULL, transect="line", truncation=timetrunk, 
                 formula= ~1, key="hn")
           
       ### 13: ESTIMATING ADULT DENSITY
           ds.model2 <- ds(Data_table_ad, region_table=Region_table, sample_table=Sample_table, 
                 obs_table=Obs_table, 
-                adjustment=NULL, transect="line", truncation=trunk, 
+                adjustment=NULL, transect="line", truncation=timetrunk, 
                 formula= ~1, key="hn")
       
       ### 14A: ESTIMATING BROOD SIZE POOLED
@@ -563,7 +567,7 @@ if(strat == "OmradeNavn"){
   
 ```
 
-```{r RODENTS TIMESERIES NINA, eval = TRUE, echo = FALSE}
+```{r RODENTS TIMESERIES NINA, eval = isFALSE(HINN), echo = FALSE}
 
 # Calculate the number of rodents observed
   timeSeries$Year = as.character.Date(timeSeries$Year)
@@ -573,7 +577,7 @@ if(strat == "OmradeNavn"){
   
 ```
 
-```{r RODENTS TIMESERIES HINN, eval = FALSE, echo = FALSE}
+```{r RODENTS TIMESERIES HINN, eval = isTRUE(HINN), echo = FALSE}
 
   # Calculate the number of rodents observed
   timeSeries$Year = as.character.Date(timeSeries$Year)
@@ -592,7 +596,7 @@ figurtekst). Her vises også en indeks på smågnagerforekomst i samme
 område, beregnet som antall linjer med sett smågnagere delt på totalt
 antall takserte linjer per år.  \newline  \newline
 
-```{r CREATE AND EXPORT PLOTS NINA HINN, eval = TRUE, echo = FALSE, message = FALSE, warning = FALSE}
+```{r CREATE AND EXPORT PLOTS NINA HINN, echo = FALSE, message = FALSE, warning = FALSE}
 
 # Function for setting y-axis values as integers
   integer_breaks = function(n = 5, ...) {
@@ -714,7 +718,7 @@ oppdagbarhets-funksjon. Dette gjør at det blir enklere å sammenlikne
 data mellom områder med lite og mye data. Oppdagbarhetskurven for
 `r ReportLevelOut` i `r YearInput` sees av **figur 2**.  \newline
 
-```{r, echo=FALSE, eval = TRUE}
+```{r, echo=FALSE}
 
 Fig1(klasser=10)  
 
