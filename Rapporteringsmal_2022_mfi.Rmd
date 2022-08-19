@@ -3,7 +3,7 @@ title: |
   | Resultater fra hønsefugltakseringene
   | <sett inn rapp.nivå>
 author: "NINA / HINN"
-date: 18\. august 2022
+date: 19\. august 2022
 header-includes:
 - \usepackage{fancyhdr}
 - \pagestyle{fancy}
@@ -214,7 +214,7 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
       d_1 = df %>% filter(Navn==ReportLevelOut, Aar==YearInput)
       
       d_1 = d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar)
-      d = d_1 #%>% filter(Rapporteringsniva!="Pasvik")
+      d = d_1
 
 # ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS; #NB! Er definert over
 # ###     
@@ -235,8 +235,8 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
 # ### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
 
       d <- transform(d, ad_t=AntallHann+AntallHunn)
-      d <- transform(d, ad=ifelse(Artnavn==Art1, ifelse(cs < 1.99, ad_t, 2), NA)) #dobbeltsjekk for at alle irrelevante observasjoner settes til NA
-      d <- transform(d, juv=ifelse(Artnavn==Art1, ifelse(cs < 1.99, 0, cs - ad), NA)) #dobbeltsjekk for at alle irrelevante observasjoner settes til NA
+      d <- transform(d, ad=ifelse(Artnavn==Art1, ifelse(cs < 1.99, ad_t, 2), NA)) #lagt inn dobbeltsjekk for at alle irrelevante observasjoner settes til NA (Artnavn == Art1)
+      d <- transform(d, juv=ifelse(Artnavn==Art1, ifelse(cs < 1.99, 0, cs - ad), NA)) #lagt inn dobbeltsjekk for at alle irrelevante observasjoner settes til NA (Artnavn == Art1)
 
 ```
 
@@ -283,8 +283,8 @@ I **tabell 1** vises en oversikt over områdene som er taksert for
 som faktisk er taksert, og ikke nødvendigvis alle tilgjengelige linjer i
 et gitt område.  \newline
 
-**Tabell 1**. Deskriptiv statistikk for `r paste(d$Navn[1])` i
-`r paste(d$Year[1])`.
+**Tabell 1**. Deskriptiv statistikk for `r ReportLevelOut` i
+`r YearInput`.
 
 ```{r 4 - NINA & HINN, echo=FALSE, results='asis'}
 
@@ -329,8 +329,8 @@ spredningen i variasjonen rundt estimatet, og går fra en skala fra 0
 til 1. Lavere CV tilsvarer mindre spredning, og dermed et sikrere
 estimat.  \newline
 
-**Tabell 2**. Resultater for `r paste(Art2)` i `r paste(d$Navn[1])` i
-`r paste(d$Year[1])`. Kyllingproduksjon rapporteres som antall kyllinger
+**Tabell 2**. Resultater for `r paste(Art2)` i `r ReportLevelOut` i
+`r YearInput`. Kyllingproduksjon rapporteres som antall kyllinger
 per par (per høne for skogsfugl). Nedre CI og Øvre CI representerer
 henholdsvis øvre og nedre konfidensintervall (med 95% sikkerhet), og CV
 representerer variasjonskoeffisienten (spredningen i resultatene).
@@ -586,7 +586,9 @@ if(strat == "OmradeNavn"){
 ```
 
 Hvordan årets estimater står i forhold til tidligere års estimater sees
-av **figur 1**. Her vises også en indeks på smågnagerforekomst i samme
+av **figur 1**. Figuren er ment som en visualisering av trender, og
+reflekterer ikke nødvendigvis de eksakte estimatene for hvert år (se
+figurtekst). Her vises også en indeks på smågnagerforekomst i samme
 område, beregnet som antall linjer med sett smågnagere delt på totalt
 antall takserte linjer per år.  \newline  \newline
 
@@ -694,7 +696,10 @@ voksne fugler observert / km^2^) for lirype, c) estimert kyllingtetthet
 (antall kyllinger observert / km^2^) for lirype og til slutt d) antall
 linjer med sett smågnagere / antall takserte linjer. Det blå feltet
 rundt trendlinjen i figur a), b) og c) representerer 95%
-konfidensintervallet til estimatet. \pagebreak
+konfidensintervall til estimatet. Merk at estimatene tilbake i tid
+her er estimert på nytt med en flat trunkering på 10% og uten hensyn til
+spesielle tilpasninger i enkelte år, slik at estimatene kan avvike noe
+fra det som tidligere er rapportert. \pagebreak
 
 ## Oppdagbarhet
 
