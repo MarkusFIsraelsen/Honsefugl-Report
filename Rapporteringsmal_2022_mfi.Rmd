@@ -32,11 +32,12 @@ skissert nedenfor.
 
 ```{r Set Report level NINA & HINN, eval = TRUE, echo = FALSE, message = FALSE}
 ### Set all code chunks to run for either HINN (TRUE) or NINA (FALSE) before knitting ###
-HINN = TRUE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
+HINN = FALSE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
 
 # Report level and Year variable that will be used for sub-setting data and plotting
-ReportLevelOut = "Helgeland 1"
+ReportLevelOut = "Finnemarka"
 YearInput = 2022
+ptarOrTetra = "tetra" # switch for å velge mellom rype eller skogsfugl analyse, "ptar" eller "tetra"
 
 # Set the figure export directory
 #figExpDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/" #NB! Ikke nødvendig å eksportere figurene, så jeg har kommentert denne ut inntil videre
@@ -149,18 +150,6 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
       
       d_1 <- d_1 %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar.x, Year = Aar.x, LinjeID = FK_LinjeID)
       d <- d_1 #%>% filter(Rapporteringsniva!="Pasvik")
-
-# ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
-# ###     
-      Art1 <- "Lirype"
-      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
-#       
-### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERCAILLIE:
-### when analysing "skogsfugl", apply this section. 
-      # Art1 <- "Skogsfugl"
-      # d <- transform(d, Artnavn = ifelse(Artnavn=="Storfugl", "Skogsfugl",
-      # ifelse(Artnavn=="Orrfugl", "Skogsfugl", ifelse(Artnavn == "Jerpe", "Skogsfugl", Artnavn))))
-      
 ```
 
 ```{r DATA IMPORT HINN, eval = isTRUE(HINN), echo = FALSE, message = FALSE}
@@ -224,7 +213,27 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
 
 ```
 
-```{r 1 - NINA & HINN, echo=FALSE, message=FALSE}
+```{r 1 - NINA & HINN, message = FALSE, eval = TRUE, echo = FALSE}
+
+if(ptarOrTetra == "ptar"){
+  # ### 4. DEFINE SPECIES - SINGLE SPECIES ANALYSIS;
+# ###     
+      Art1 <- "Lirype"
+      Art2 <- ifelse(Art1=="Lirype", "lirype", "skogsfugl")
+#       
+} else{
+  ### 4B: DEFINE SPECIES - COMBINED ANALYSIS OF BLACK GROUSE AND CAPERCAILLIE:
+### when analysing "skogsfugl", apply this section. 
+       Art1 <- "Skogsfugl"
+       d <- transform(d, Artnavn = ifelse(Artnavn=="Storfugl", "Skogsfugl",
+       ifelse(Artnavn=="Orrfugl", "Skogsfugl", ifelse(Artnavn == "Jerpe", "Skogsfugl", Artnavn))))
+       Art2 <- ifelse(Art1=="Skogsfugl", "skogsfugl", "Lirype")
+       
+}
+      
+```
+
+```{r 2 - NINA & HINN, echo=FALSE, message=FALSE}
 ### 5. SET DISTANCE AND CS ETC
       d <- transform(d, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
       d <- transform(d, AntallHann=ifelse(Artnavn==Art1, AntallHann, NA))
@@ -232,20 +241,30 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
       d <- transform(d, AntallKylling=ifelse(Artnavn==Art1, AntallKylling, NA))
       d <- transform(d, AntallUkjent=ifelse(Artnavn==Art1, AntallUkjent, NA))
       d <- transform(d, cs=ifelse(Artnavn==Art1, cs, NA))
+```
 
-# ### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
+```{r 3 - NINA & HINN, message = FALSE, eval = TRUE, echo = FALSE}
+
+if(ptarOrTetra == "ptar"){
+  # ### 6. DEFINE NUMBER OF JUVENILES AND ADULTS; 
 
       d <- transform(d, ad_t=AntallHann+AntallHunn)
       d <- transform(d, ad=ifelse(Artnavn==Art1, ifelse(cs < 1.99, ad_t, 2), NA)) #lagt inn dobbeltsjekk for at alle irrelevante observasjoner settes til NA (Artnavn == Art1)
       d <- transform(d, juv=ifelse(Artnavn==Art1, ifelse(cs < 1.99, 0, cs - ad), NA)) #lagt inn dobbeltsjekk for at alle irrelevante observasjoner settes til NA (Artnavn == Art1)
+} else {
+      d <- transform(d, ad_t=AntallHann+AntallHunn)
+      d <- transform(d, ad=ad_t) #skogsfugl
+      d <- transform(d, juv=cs-ad) #skogsfugl
+}
+
 
 ```
 
-```{r 2 - NINA & HINN, echo=FALSE, message=FALSE}
+```{r 4 - NINA & HINN, echo=FALSE, message=FALSE, warning = FALSE}
 
 #### 7. DEFINE IF THERE ARE ANY STRATA IN YOUR DATA;
 
-    strat <- "OmradeNavn"   # "År", "OmradeNavn", eller "No"
+    strat <- "No"   # "År", "OmradeNavn", eller "No"
 
 ### 8. DEFINING DATA STRUCTURE FOR ANALYSIS; 
 
@@ -257,7 +276,7 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
       
 ```
 
-```{r 3 - NINA & HINN, echo=FALSE, message=FALSE}
+```{r 5 - NINA & HINN, echo=FALSE, message=FALSE, warning = FALSE}
     
     trunk <- "10%"
     ### 10: THE BASIC DISTANCE SAMPLING MODEL: ESTIMATING THE DETECTION FUNCTION
@@ -271,9 +290,15 @@ informasjon om Hønsefuglportalen, taksering og metodikk finnes på
             obs_table=Obs_table, 
             adjustment=NULL, transect="line", truncation=trunk, 
             formula= ~1, key="hn")
+```
 
-    ### 14A: ESTIMATING BROOD SIZE POOLED
+```{r 6 - NINA & HINN, message = FALSE, echo = FALSE, eval = TRUE, warning = FALSE}
+if(ptarOrTetra == "ptar"){
+  ### 14A: ESTIMATING BROOD SIZE POOLED
       Rekrutt_all <- rec(strat = strat)
+} else{
+  Rekrutt_skogsfugl = rec_skogsfugl(strat)
+}
      
 ```
 
@@ -287,23 +312,41 @@ et gitt område.  \newline
 **Tabell 1**. Deskriptiv statistikk for `r ReportLevelOut` i
 `r YearInput`.
 
-```{r 4 - NINA & HINN, echo=FALSE, results='asis'}
-
-     tab1Strat <- "OmradeNavn"   # Has to be set as OmradeNavn
-
-     Data_table <- dat_tab(strat = tab1Strat)
-     Data_table_ad <- dat_tab_ad(strat = tab1Strat)
-     Obs_table <- obs_tab(strat = tab1Strat)
-     Sample_table <- samp_tab(strat = tab1Strat)
-     Region_table <- reg_tab(strat = tab1Strat) 
-      
-     panderOptions("table.split.table", 120)
-     panderOptions("table.alignment.default", "left")
-     pander(Desc_omr(), missing="")
+```{r 7 - NINA & HINN, echo=FALSE, results='asis', warning = FALSE}
+    
+if(ptarOrTetra == "ptar"){
+  
+  tab1Strat <- "OmradeNavn"   # Has to be set as OmradeNavn
+  
+  Data_table <- dat_tab(strat = tab1Strat)
+  Data_table_ad <- dat_tab_ad(strat = tab1Strat)
+  Obs_table <- obs_tab(strat = tab1Strat)
+  Sample_table <- samp_tab(strat = tab1Strat)
+  Region_table <- reg_tab(strat = tab1Strat) 
+    
+  panderOptions("table.split.table", 120)
+  panderOptions("table.alignment.default", "left")
+  pander(Desc_omr(), missing="")
+} else{
+  tab1Strat = "No"
+  
+  Data_table = dat_tab(strat = tab1Strat)
+  Data_table_ad = dat_tab_ad(strat = tab1Strat)
+  Obs_table = obs_tab(strat = tab1Strat)
+  Sample_table = samp_tab(strat = tab1Strat)
+  Region_table = reg_tab(strat = tab1Strat)
+  
+  panderOptions("table.split.table", 120)
+  panderOptions("table.alignment.default", "left")
+  allTable1 = Desc_all()
+  colnames(allTable1)[1] = "Område"
+  allTable1[[1]] = ReportLevelOut
+  pander(allTable1, missing = "")
+}
      
 ```
 
-```{r 5 - NINA & HINN, echo = FALSE, message = FALSE}
+```{r 8 - NINA & HINN, echo = FALSE, message = FALSE, warning = FALSE}
 
 # Count the number of willow ptarmigan and other species (Storfugl, Fjellrype..)
 allSpecies = d
@@ -311,14 +354,20 @@ allSpecies = allSpecies %>% mutate(Counter = ifelse(FK_ArtId >= 0, 1, NA))
 allSpeciesTable = allSpecies %>% group_by(Artnavn) %>% summarise(NObs = sum(Counter))
 allSpeciesTable = na.omit(allSpeciesTable)
 noOfSpecies = length(allSpeciesTable$Artnavn)
-willowPtar = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn == "Lirype"), ])
-otherSpecies = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn != "Lirype"), ])
+if(ptarOrTetra == "ptar"){
+  willowPtar = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn == "Lirype"), ])
+  otherSpecies = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn != "Lirype"), ])
+} else {
+  willowPtar = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn == "Skogsfugl"), ])
+  otherSpecies = data.frame(allSpeciesTable[which(allSpeciesTable$Artnavn != "Skogsfugl"), ])
+}
+
 
 ```
 
 Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs`
 observasjoner, som over).
-`r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""),               ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""),                      ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""),                             ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""),                                    ifelse(noOfSpecies == 1, "Øvrige arter ble ikke observert."))))))`
+`r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""), ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""),                      ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""),                             ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""), ifelse(noOfSpecies == 1 & ptarOrTetra == "tetra", "", ifelse(noOfSpecies == 1 & ptarOrTetra == "ptar", "Øvrige arter ble ikke observert.")))))))`
 
  \newline I **tabell 2** fremkommer tetthetsestimatene og estimat av
 kyllingproduksjonen for `r ReportLevelOut` i `r YearInput`. Merk at
@@ -336,7 +385,7 @@ per par (per høne for skogsfugl). Nedre CI og Øvre CI representerer
 henholdsvis øvre og nedre konfidensintervall (med 95% sikkerhet), og CV
 representerer variasjonskoeffisienten (spredningen i resultatene).
 
-```{r 6 - NINA & HINN, echo=FALSE, results='asis', message = FALSE}
+```{r 9 - NINA & HINN, echo=FALSE, results='asis', message = FALSE, warning = FALSE}
 
 # Either print table 2 based on Omradenavn stratification or no stratification at all
 
@@ -383,7 +432,11 @@ if(strat == "OmradeNavn"){
 } else{
   panderOptions("table.split.table", 120)
   panderOptions("table.alignment.default", "left")
-  totres <- as.data.frame(samle_res()) #LRE: lagt til slik at det blir lik utforming på tabeller med og uten stratifisering
+  if(ptarOrTetra == "ptar"){
+    totres <- as.data.frame(samle_res()) #LRE: lagt til slik at det blir lik utforming på tabeller med og uten stratifisering
+  } else{
+    totres = as.data.frame(skogsfugl_res())
+  }
   colnames(totres) <- c("","Estimat","Nedre CI","Øvre CI","CV")
   pander(totres)
 }
@@ -392,7 +445,7 @@ if(strat == "OmradeNavn"){
 
 \pagebreak
 
-```{r 7 - NINA & HINN, echo = FALSE, message = FALSE}
+```{r 10 - NINA & HINN, echo = FALSE, message = FALSE}
 
   # Data management for the time series figure
   timeSeries = df %>% filter(Aar >= 2013, Rapporteringsniva == ReportLevelOut)
@@ -410,10 +463,13 @@ if(strat == "OmradeNavn"){
   
 ```
 
-```{r 8 - NINA OG HINN, echo = FALSE, message = FALSE}
+```{r 11 - NINA OG HINN, echo = FALSE, message = FALSE, warning = FALSE}
   
   # Create the time series data frame and run the while-loop
   timeSeries = timeSeries %>% mutate(cs = AntallHann + AntallHunn + AntallKylling + AntallUkjent, År = Aar, Year = Aar)
+  if(ptarOrTetra == "tetra"){
+    timeSeries = timeSeries %>% mutate(Artnavn = ifelse(Artnavn == "Storfugl", "Skogsfugl", ifelse(Artnavn == "Orrfugl", "Skogsfugl", ifelse(Artnavn == "Jerpe", "Skogsfugl", Artnavn))))
+  }
   
   # Set distance and CS etc
   timeSeries <- transform(timeSeries, LinjeAvstand=ifelse(Artnavn==Art1, LinjeAvstand, NA))
@@ -426,8 +482,13 @@ if(strat == "OmradeNavn"){
   # Define number of juveniles and adults 
   timeSeries <- transform(timeSeries, ad_t=AntallHann+AntallHunn)
   timeSeries <- transform(timeSeries, cs=ad_t+AntallUkjent+AntallKylling)      
-  timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
-  timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
+  if(ptarOrTetra == "ptar"){
+    timeSeries <- transform(timeSeries, ad=ifelse(cs<1.99, ad_t, 2)) 
+    timeSeries <- transform(timeSeries, juv=ifelse(cs<1.99, 0, cs-ad)) 
+  } else{
+    timeSeries <- transform(timeSeries, ad=ad_t) #skogsfugl
+    timeSeries <- transform(timeSeries, juv=cs-ad) #skogsfugl
+  }
   
   #LRE: Har kommentert ut redefinering av strata, slik at det benyttes samme stratifisering (og dermed totaltetthet) som i hovedanalysen
   # # Define if there are any strata in your data
@@ -532,20 +593,38 @@ if(strat == "OmradeNavn"){
                 formula= ~1, key="hn")
       
       ### 14A: ESTIMATING BROOD SIZE POOLED
-          Rekrutt_all <- rec(strat="No")
+          if(ptarOrTetra == "ptar"){
+            Rekrutt_all <- rec(strat="No")  
+          } else{
+            Rekrutt_skogsfugl = rec_skogsfugl(strat="No")
+          }
+          
       
       # Append the estimate and CI to the respective vectors
       if(i == 1){
-        estimat[i:(i*3)] = as.numeric(samle_res()$Estimat)
-        nedreCL[i:(i*3)] = as.numeric(samle_res()$`Nedre CL`)
-        ovreCL[i:(i*3)] = as.numeric(samle_res()$`Øvre CL`)
+        if(ptarOrTetra == "ptar"){
+          estimat[i:(i*3)] = as.numeric(samle_res()$Estimat)
+          nedreCL[i:(i*3)] = as.numeric(samle_res()$`Nedre CL`)
+          ovreCL[i:(i*3)] = as.numeric(samle_res()$`Øvre CL`)
+        } else{
+          estimat[i:(i*3)] = as.numeric(skogsfugl_res()$Estimat)
+          nedreCL[i:(i*3)] = as.numeric(skogsfugl_res()$`Nedre CL`)
+          ovreCL[i:(i*3)] = as.numeric(skogsfugl_res()$`Øvre CL`)
+        }
+        
       }
           
       if(i != 1){
-        estimat[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$Estimat)
-        nedreCL[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$`Nedre CL`)
-        ovreCL[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$`Øvre CL`)
+        if(ptarOrTetra == "ptar"){
+          estimat[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$Estimat)
+          nedreCL[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$`Nedre CL`)
+          ovreCL[((i*2)+(i-2)):(i*3)] = as.numeric(samle_res()$`Øvre CL`)
+        } else{
+          estimat[((i*2)+(i-2)):(i*3)] = as.numeric(skogsfugl_res()$Estimat)
+          nedreCL[((i*2)+(i-2)):(i*3)] = as.numeric(skogsfugl_res()$`Nedre CL`)
+          ovreCL[((i*2)+(i-2)):(i*3)] = as.numeric(skogsfugl_res()$`Øvre CL`)
         }
+      }
     }
     
       if(i == length(years)){
@@ -695,9 +774,9 @@ ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
 ```
 
 **Figur 1**. Figuren viser a) estimert total tetthet (antall
-observasjoner / km^2^) for lirype, b) estimert voksentetthet (antall
-voksne fugler observert / km^2^) for lirype, c) estimert kyllingtetthet
-(antall kyllinger observert / km^2^) for lirype og til slutt d) antall
+observasjoner / km^2^), b) estimert voksentetthet (antall
+voksne fugler observert / km^2^), c) estimert kyllingtetthet
+(antall kyllinger observert / km^2^) og til slutt d) antall
 linjer med sett smågnagere / antall takserte linjer. Det blå feltet
 rundt trendlinjen i figur a), b) og c) representerer 95%
 konfidensintervall til estimatet. Merk at estimatene tilbake i tid
