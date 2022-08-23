@@ -32,18 +32,19 @@ skissert nedenfor.
 
 ```{r Set Report level NINA & HINN, eval = TRUE, echo = FALSE, message = FALSE}
 ### Set all code chunks to run for either HINN (TRUE) or NINA (FALSE) before knitting ###
-HINN = FALSE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
+HINN = TRUE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
 
 # Report level and Year variable that will be used for sub-setting data and plotting
 ReportLevelOut = "Finnemarka"
-YearInput = 2022
+YearInput = 2021
 ptarOrTetra = "tetra" # switch for å velge mellom rype eller skogsfugl analyse, "ptar" eller "tetra"
 
 # Set the figure export directory
 #figExpDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/Figures/" #NB! Ikke nødvendig å eksportere figurene, så jeg har kommentert denne ut inntil videre
 
 ### HINN - Set the directory for the dataset ###
-hinnImportDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/XML/Rapport_2_21_0_0_Helgeland_1_2013-2021.xml"
+hinnImportDir = "C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/XML/Rapport_2_11_547_0.xml"
+  #"C:/Users/markus.israelsen/OneDrive - NINA/GitHub/HonsefuglReport/Honsefugl-Report/XML/Rapport_2_21_0_0_Helgeland_1_2013-2021.xml"
 
 ```
 
