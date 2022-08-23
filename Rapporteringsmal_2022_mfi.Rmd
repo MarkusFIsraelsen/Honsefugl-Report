@@ -32,7 +32,7 @@ skissert nedenfor.
 
 ```{r Set Report level NINA & HINN, eval = TRUE, echo = FALSE, message = FALSE}
 ### Set all code chunks to run for either HINN (TRUE) or NINA (FALSE) before knitting ###
-HINN = TRUE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
+HINN = FALSE #switch for å velge riktige kodesnutter/chunks for hhv. HINN (TRUE) eller NINA (FALSE)
 
 # Report level and Year variable that will be used for sub-setting data and plotting
 ReportLevelOut = "Finnemarka"
@@ -368,7 +368,7 @@ if(ptarOrTetra == "ptar"){
 
 Merk at estimater kun er gjort for `r paste(Art2)` (`r willowPtar$NObs`
 observasjoner, som over).
-`r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""), ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""),                      ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""),                             ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""), ifelse(noOfSpecies == 1 & ptarOrTetra == "tetra", "", ifelse(noOfSpecies == 1 & ptarOrTetra == "ptar", "Øvrige arter ble ikke observert.")))))))`
+`r paste(ifelse(noOfSpecies == 5, paste("Det ble også registrert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.), ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.)", " og ", otherSpecies$Artnavn[4], " (", otherSpecies$NObs[4], " obs.).", sep =""), ifelse(noOfSpecies == 4, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.), ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.)", " og ", otherSpecies$Artnavn[3], " (", otherSpecies$NObs[3], " obs.).", sep =""),                      ifelse(noOfSpecies == 3, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.)", " og ", otherSpecies$Artnavn[2], " (", otherSpecies$NObs[2], " obs.).", sep =""),                             ifelse(noOfSpecies == 2, paste("Det ble også observert ", otherSpecies$Artnavn[1], " (",otherSpecies$NObs[1]," obs.).", sep =""), ifelse(noOfSpecies == 1, "Øvrige arter ble ikke observert."))))))`
 
  \newline I **tabell 2** fremkommer tetthetsestimatene og estimat av
 kyllingproduksjonen for `r ReportLevelOut` i `r YearInput`. Merk at
@@ -708,8 +708,13 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
     ylab(bquote(phantom(0)["Tetthet (95% CI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
   
   # Chick density plot
+  if(ptarOrTetra == "ptar"){
+    chickSub = "par"
+  } else{
+    chickSub = "høne"
+  }
   tsChickPlot = ggplot(data = timeSeriesChick, aes(x=Year, y=Estimat, group = Faktor)) +
-    labs(title = ReportLevelOut, subtitle = bquote("a) Kyllingtetthet - Antall fugl/"*km^2)) +
+    labs(title = ReportLevelOut, subtitle = paste("a) Kyllingtetthet - Antall kyllinger/", chickSub, sep = "")) +
     xlab("År") +
     ylab(bquote(phantom(0)["Tetthet (95% CI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
   
@@ -741,9 +746,14 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
    theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesAd$`Øvre CL`, na.rm = TRUE))))
 
  # Chick density plot
+ if(ptarOrTetra == "ptar"){
+   chickSub = "par"
+ } else{
+   chickSub = "høne"
+ }
  tsChickPlot = ggplot(data = timeSeriesChick, aes(x = Year, y = Estimat, group = Faktor)) + geom_point() +
      geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-     labs(title = ReportLevelOut, subtitle = bquote("c) Kyllingtetthet - Antall fugl/"*km^2)) +
+     labs(title = ReportLevelOut, subtitle = paste("c) Kyllingtetthet - Antall kyllinger/", chickSub, sep = "")) +
      xlab("År") +
      ylab(bquote(phantom(0)["Tetthet (95% CI)"])) +
      geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") +
@@ -777,7 +787,7 @@ ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
 **Figur 1**. Figuren viser a) estimert total tetthet (antall
 observasjoner / km^2^), b) estimert voksentetthet (antall
 voksne fugler observert / km^2^), c) estimert kyllingtetthet
-(antall kyllinger observert / km^2^) og til slutt d) antall
+(antall kyllinger observert / `r paste(ifelse(ptarOrTetra == "ptar", "par", "høne"))`) og til slutt d) antall
 linjer med sett smågnagere / antall takserte linjer. Det blå feltet
 rundt trendlinjen i figur a), b) og c) representerer 95%
 konfidensintervall til estimatet. Merk at estimatene tilbake i tid
