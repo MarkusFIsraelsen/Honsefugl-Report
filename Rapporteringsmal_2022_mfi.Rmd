@@ -714,9 +714,9 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
     chickSub = "høne"
   }
   tsChickPlot = ggplot(data = timeSeriesChick, aes(x=Year, y=Estimat, group = Faktor)) +
-    labs(title = ReportLevelOut, subtitle = paste("a) Kyllingtetthet - Antall kyllinger/", chickSub, sep = "")) +
+    labs(title = ReportLevelOut, subtitle = paste("a) Kyllingproduksjon - Antall kyllinger/", chickSub, sep = "")) +
     xlab("År") +
-    ylab(bquote(phantom(0)["Tetthet (95% CI)"])) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
+    ylab(paste("Kyllinger/", chickSub," (95% CI)", sep = "")) + theme(text = element_text(size = 8), axis.title.y = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, 10))
   
   # Proportion of rodents observed plot 
   tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + geom_point() +
@@ -753,11 +753,11 @@ if(all(is.na(unique(timeSeriesDF$Estimat))) == TRUE){
  }
  tsChickPlot = ggplot(data = timeSeriesChick, aes(x = Year, y = Estimat, group = Faktor)) + geom_point() +
      geom_line(color = "black", size = 1, alpha = 1, linetype = 1) +
-     labs(title = ReportLevelOut, subtitle = paste("c) Kyllingtetthet - Antall kyllinger/", chickSub, sep = "")) +
+     labs(title = ReportLevelOut, subtitle = paste("c) Kyllingproduksjon - Antall kyllinger/", chickSub, sep = "")) +
      xlab("År") +
-     ylab(bquote(phantom(0)["Tetthet (95% CI)"])) +
+     ylab(paste("Kyllinger/", chickSub," (95% CI)", sep = "")) +
      geom_ribbon(aes(ymin = `Nedre CL`, ymax = `Øvre CL`), alpha = 0.4, fill = "steelblue") +
-     theme(text = element_text(size = 8), axis.title.y = element_text(size = 12)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesChick$`Øvre CL`, na.rm = TRUE))))
+     theme(text = element_text(size = 8), axis.title.y = element_text(size = 8)) + scale_y_continuous(breaks = integer_breaks(), limits = c(0, ceiling(max(timeSeriesChick$`Øvre CL`, na.rm = TRUE))))
 
  # Proportion of rodents observered plot
   tsRodentsPlot = ggplot(data = timeSeriesRodents, aes(x = Year, y = SeeRodPercent, group = 1)) + geom_point() +
@@ -786,7 +786,7 @@ ggarrange(tsTotPlot, tsAdPlot, tsChickPlot, tsRodentsPlot)
 
 **Figur 1**. Figuren viser a) estimert total tetthet (antall
 observasjoner / km^2^), b) estimert voksentetthet (antall
-voksne fugler observert / km^2^), c) estimert kyllingtetthet
+voksne fugler observert / km^2^), c) estimert kyllingproduksjon
 (antall kyllinger observert / `r paste(ifelse(ptarOrTetra == "ptar", "par", "høne"))`) og til slutt d) antall
 linjer med sett smågnagere / antall takserte linjer. Det blå feltet
 rundt trendlinjen i figur a), b) og c) representerer 95%
