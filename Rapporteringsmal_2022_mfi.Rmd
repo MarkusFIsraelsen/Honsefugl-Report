@@ -300,6 +300,9 @@ if(ptarOrTetra == "ptar"){
 } else{
   Rekrutt_skogsfugl = rec_skogsfugl(strat)
 }
+
+tempD = d
+tempModel1 = ds.model1
      
 ```
 
@@ -809,7 +812,8 @@ data mellom områder med lite og mye data. Oppdagbarhetskurven for
 `r ReportLevelOut` i `r YearInput` sees av **figur 2**.  \newline
 
 ```{r, echo=FALSE}
-
+d = tempD
+ds.model1 = tempModel1
 Fig1(klasser=10)  
 
 ```
